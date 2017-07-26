@@ -1,0 +1,21 @@
+<div>
+  <%= for repo <- repos do %>
+    <div style="padding-bottom: 30px;">
+      <div style="background-color: #dddddd; display: inline-block; height: 50px; width: 100%; top: 0%;">
+        <span style="font-size: 35px; margin-left: 10px;"><%= repo["name"] %></span>
+        <%= for contributor <- contributors repo do %>
+          <img style="float: right; width: 50px;" title=<%= contributor["login"] %> src=<%= contributor["avatar_url"] %>></img>
+        <%= end %>
+      </div>
+      <div style="display:flex;">
+        <div style="width: 45%; margin: 0 auto; background-color: #aaaaaa;"><%= repo["id"] %></div>
+        <div style="padding: 10px; width: 55%; height: 100%; background-color: #999999;">
+          <div style="font-size: 25px;"><%= repo["open_issues"] %> ISSUES</div>
+          <div style="font-size: 25px;"><%= repo["open_issues"] %> ISSUES</div>
+          <div style="font-size: 25px;"><%= repo["open_issues"] %> ISSUES</div>
+        </div>
+      </div>
+      <div style="width:100%; height: 30px; background-color: #666666;"></div>
+    </div>
+  <%= end %>
+</div>
