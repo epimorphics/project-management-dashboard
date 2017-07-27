@@ -22,7 +22,6 @@ defmodule HelloPhoenix.Web do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
-      import Github
     end
   end
 

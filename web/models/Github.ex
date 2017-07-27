@@ -1,8 +1,15 @@
 defmodule Github do
   @api "https://api.github.com"
-  @epiEndpoint "/orgs/epimorphics"
+  @orgsEndpoint "/orgs"
+  @epiEndpoint "/epimorphics"
   @reposEndpoint "/repos"
-  @token "39be9ef43db366946cd8669b0ad164bc0d119031"
+
+  def github do
+    repos = Github.getRepos
+    out = Enum.reduce(repos, [] , fn(repo, all) -> [%{"name" => repo["name"], "contributors" => repo["contributors_url"]}| all] end)
+    contList = Enum.reduce(out, %{}, fn(repo, all) -> Map.merge(all, %{repo["name"] => Github.getContributors(repo["contributors"])}) end)
+    %{:repos => repos, :contributors => contList}
+  end
 
   def headers do
     token = Application.fetch_env!(:hello_phoenix, :api_key)
@@ -10,18 +17,17 @@ defmodule Github do
   end
 
   def options do
-    [ssl: [{:versions, [:'tlsv1.2']}], recv_timeout: 500]
+    [ssl: [{:versions, [:'tlsv1.2']}], recv_timeout: 2000]
   end
 
   def getOrg do
     HTTPoison.start
-    HTTPoison.get!(@api <> @epiEndpoint, headers, options).body
-    |> Poison.decode
+    HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint, headers, options)
   end
 
   def getRepos do
     HTTPoison.start
-    HTTPoison.get!(@api <> @epiEndpoint <> @reposEndpoint , headers, options).body
+    HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers, options).body
     |> Poison.decode!
   end
 
@@ -31,6 +37,27 @@ defmodule Github do
     for person <- Poison.decode!(resp.body) do
       person
     end
+  end
+
+  def getIssues(repoName) do
+    issuesLink = @api <> "/repos" <> @epiEndpoint <> "/" <> repoName <> "/issues"
+    resp = HTTPoison.get!(issuesLink, headers, options)
+    Poison.decode!(resp.body)
+  end
+
+  def getOpen(issue) do
+    case Map.get(issue, "state") do
+      "open" -> true
+      _ -> false
+    end
+  end
+
+  def getType(issue) do
+    issue
+    |> Map.get("labels")
+    |> Enum.reduce([], fn (x, acc) ->
+         [ x["name"] | acc]
+      end)
   end
 
 end

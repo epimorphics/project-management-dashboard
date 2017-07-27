@@ -6,11 +6,12 @@ defmodule HelloPhoenix.GitView do
   end
 
   def repos do
-    Github.getRepos
+    Source.get(:github, :repos)
   end
 
-  def contributors(repo) do
-    Github.getContributors(repo["contributors_url"])
+  def contributors(name) do
+    Source.get(:github, :contributors)
+    |> Map.get(name)
   end
 
 end

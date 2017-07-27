@@ -1,13 +1,17 @@
 defmodule Source do
-  def start_link(_opts) do
-    Agent.start_link(fn -> %{} end)
+  def start_link do
+    Agent.start_link(fn -> %{} end, name: :sources)
+    Source.put(:github, Github.github)
+    Source.put(:codebaseHQ, CodebaseHQ.codebaseHQ)
   end
 
-  def get(bucket, key) do
-    Agent.get(bucket, &Map.get(&1, key))
+  def get(source, key) do
+    Agent.get(:sources, &Kernel.get_in(&1, [source, key]))
   end
 
-  def put(bucket, key, value) do
-    Agent.update(bucket, &Map.put(&1, key, value))
+  def put(key, value) do
+    Agent.update(:sources, &Map.put(&1, key, value))
   end
+
 end
+

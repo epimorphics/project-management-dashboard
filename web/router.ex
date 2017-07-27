@@ -20,6 +20,7 @@ defmodule HelloPhoenix.Router do
     get "/hello", HelloController, :index
     get "/hello/:messenger", HelloController, :show
     get "/git", GitController, :index
+    get "/cb", CodebaseHQController, :index
     resources "/users", UserController
   end
 
