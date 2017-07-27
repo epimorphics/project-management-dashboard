@@ -21,7 +21,6 @@ defmodule CodebaseHQ do
   end
 
   def getProjects do
-    HTTPoison.start
     HTTPoison.get!(@api <> @projectEndpoint, headers, auth).body
     |> Poison.decode!
     |> Enum.map(fn (x) -> x["project"] end)

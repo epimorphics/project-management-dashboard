@@ -1,6 +1,8 @@
 defmodule Source do
+
   def start_link do
     Agent.start_link(fn -> %{} end, name: :sources)
+    HTTPoison.start
     Source.put(:github, Github.github)
     Source.put(:codebaseHQ, CodebaseHQ.codebaseHQ)
   end
