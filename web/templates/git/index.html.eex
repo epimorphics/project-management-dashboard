@@ -2,6 +2,7 @@
   <%= for repo <- repos do %>
     <div style="padding-bottom: 30px;">
       <div style="background-color: #dddddd; display: inline-block; height: 50px; width: 100%; top: 0%;">
+        <img style="height: 50px;" src="https://assets-cdn.github.com/images/modules/logos_page/GitHub-Mark.png"></img>
         <span style="font-size: 35px; margin-left: 10px;"><%= repo["name"] %></span>
         <%= for contributor <- contributors(repo["name"]) do %>
           <img style="float: right; height:50px; width:50px;" src=<%= contributor["avatar_url"] %>></img>
