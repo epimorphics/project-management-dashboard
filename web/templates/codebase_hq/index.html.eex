@@ -3,14 +3,14 @@
     <div style="padding-bottom: 30px;">
       <div style="background-color: #dddddd; display: inline-block; height: 50px; width: 100%; top: 0%;">
         <img style="height: 50px;" src="https://pbs.twimg.com/profile_images/378800000410745178/8704302b5009e71d66fbc8f52cefc0bc_400x400.png"></img>
-        <span style="font-size: 35px; margin-left: 10px;"><%= repo["name"] %></span>
+        <span style="font-size: 35px; margin-left: 10px;"><%= repo.name %></span>
       </div>
       <div style="display:flex;">
-        <div style="padding: 10px; width: 45%; margin: 0 auto; background-color: #aaaaaa;"><%= repo["overview"] %></div>
+        <div style="padding: 10px; width: 45%; margin: 0 auto; background-color: #aaaaaa;"><%= repo.overview %></div>
         <div style="padding: 10px; width: 55%; height: 100%; background-color: #999999;">
-          <div style="font-size: 25px;"><%= repo["open_tickets"] %> ISSUES</div>
-          <div style="font-size: 25px;"><%= bugs repo["permalink"] %> ACTIVE BUGS </div>
-          <div style="font-size: 25px;"><%= repo["open_tickets"] %> ISSUES</div>
+          <div style="font-size: 25px;"><%= repo.open_tickets %> ISSUES</div>
+          <div style="font-size: 25px;"><%= repo.bugs %> ACTIVE BUGS </div>
+          <div style="font-size: 25px;"><%= repo.open_tickets %> ISSUES</div>
         </div>
       </div>
       <div style="width:100%; height: 30px; background-color: #666666;"></div>

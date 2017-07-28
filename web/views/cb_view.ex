@@ -5,10 +5,9 @@ defmodule HelloPhoenix.CodebaseHQView do
     Source.get(:codebaseHQ, :repos)
   end
 
-  def bugs(permalink) do
-    Source.get(:codebaseHQ, :bugs)
-    |> Map.get(permalink)
-    |> Map.get("Bug", 0)
+  def bugs (repo) do
+    repo
+    |> Map.get(:bugs, 0)
   end
 
 end

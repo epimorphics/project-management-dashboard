@@ -14,16 +14,24 @@ defmodule CodebaseHQ do
   end
 
   def codebaseHQ do
-    repos = CodebaseHQ.getProjects
-    bugs = Enum.reduce(repos, %{}, fn (x, all) ->
-      Map.put(all, x["permalink"], getBugs(getTickets(x["permalink"]))) end)
-    %{:repos => CodebaseHQ.getProjects, :bugs => bugs}
+    repos = Enum.map(CodebaseHQ.getProjects, fn(y) ->
+      Map.put(y, :bugs, getBugs(getTickets(y[:permalink])))
+    end)
+    %{:repos => repos}
   end
 
   def getProjects do
+    expected_fields = ~w(open_tickets name overview permalink status)
     HTTPoison.get!(@api <> @projectEndpoint, headers, auth).body
     |> Poison.decode!
     |> Enum.map(fn (x) -> x["project"] end)
+    |> Enum.map(fn (x) -> 
+         x
+         |> Map.take(expected_fields)
+         |> Enum.reduce(%{}, fn({k,v}, all) ->
+              Map.merge(all, %{String.to_atom(k) => v})
+            end)
+       end)
   end
 
   def getTickets(projectPermalink) do
@@ -40,6 +48,7 @@ defmodule CodebaseHQ do
       end
       Map.put(acc, CodebaseHQ.getType(x), currentAcc)
     end)
+    |> Map.get("Bug", 0)
   end
 
   def getStatus(ticket) do
@@ -55,4 +64,5 @@ defmodule CodebaseHQ do
     |> Map.get("type")
     |> Map.get("name")
   end
+
 end
