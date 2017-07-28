@@ -6,9 +6,8 @@ defmodule Github do
 
   def github do
     repos = Github.getRepos
-    out = Enum.reduce(repos, [] , fn(repo, all) -> [%{"name" => repo["name"], "contributors" => repo["contributors_url"]}| all] end)
-    contList = Enum.reduce(out, %{}, fn(repo, all) -> Map.merge(all, %{repo["name"] => Github.getContributors(repo["contributors"])}) end)
-    %{:repos => repos, :contributors => contList}
+    |> addContributors
+    %{:repos => repos}
   end
 
   def headers do
@@ -26,21 +25,42 @@ defmodule Github do
   end
 
   def getRepos do
+    expected_fields = ~w(name description open_issues )
     HTTPoison.start
     HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers, options).body
     |> Poison.decode!
+    |> Enum.map(fn (x) ->
+         x
+         |> Map.take(expected_fields)
+         |> Enum.reduce(%{}, fn({k,v}, all) ->
+              Map.merge(all, %{String.to_atom(k) => v})
+            end)
+       end)
   end
 
-  def getContributors(contLink) do
+  def getContributors(name) do
+    expected_fields = ~w(login avatar_url contributions)
     HTTPoison.start
-    resp = HTTPoison.get!(contLink, headers, options)
-    for person <- Poison.decode!(resp.body) do
-      person
-    end
+    HTTPoison.get!(@api <> @reposEndpoint <> @epiEndpoint <> "/" <> name <> "/contributors", headers, options).body
+    |> Poison.decode!
+    |> Enum.map(fn (x) ->
+         x
+         |> Map.take(expected_fields)
+         |> Enum.reduce(%{}, fn({k,v}, all) ->
+              Map.merge(all, %{String.to_atom(k) => v})
+            end)
+       end)
+  end
+
+  def addContributors(repos) do
+    repos
+    |> Enum.map(fn (repo) ->
+         Map.put(repo, :contributors, getContributors(repo.name))
+       end)
   end
 
   def getIssues(repoName) do
-    issuesLink = @api <> "/repos" <> @epiEndpoint <> "/" <> repoName <> "/issues"
+    issuesLink = @api <> @reposEndpoint <> @epiEndpoint <> "/" <> repoName <> "/issues"
     resp = HTTPoison.get!(issuesLink, headers, options)
     Poison.decode!(resp.body)
   end
