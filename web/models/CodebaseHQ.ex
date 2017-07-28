@@ -15,7 +15,10 @@ defmodule CodebaseHQ do
 
   def codebaseHQ do
     repos = Enum.map(CodebaseHQ.getProjects, fn(y) ->
-      Map.put(y, :bugs, getBugs(getTickets(y[:permalink])))
+      tickets = getTickets(y[:permalink])
+	  y
+      |> Map.put(:bugs, getBugs(tickets))
+      |> Map.put(:priorities, getPriorities(tickets))
     end)
     %{:repos => repos}
   end
@@ -49,6 +52,24 @@ defmodule CodebaseHQ do
       Map.put(acc, CodebaseHQ.getType(x), currentAcc)
     end)
     |> Map.get("Bug", 0)
+  end
+
+  def getPriorities(tickets) do
+    Enum.reduce(tickets, %{}, fn (x, acc) ->
+      currentAcc = Map.get(acc, CodebaseHQ.getPriority(x), 0)
+      currentAcc = case CodebaseHQ.getStatus(x) do
+        true -> currentAcc
+        false -> currentAcc + 1
+      end
+      Map.put(acc, CodebaseHQ.getPriority(x), currentAcc)
+    end)
+  end
+
+  def getPriority(ticket) do
+    ticket
+	|> Map.get("ticket")
+	|> Map.get("priority")
+	|> Map.get("name")
   end
 
   def getStatus(ticket) do
