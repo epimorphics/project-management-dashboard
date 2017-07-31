@@ -16,7 +16,7 @@ defmodule CodebaseHQ do
   def codebaseHQ do
     repos = Enum.map(CodebaseHQ.getProjects, fn(y) ->
       tickets = getTickets(y[:permalink])
-	  y
+      Map.put(y, :users, getAssignments(y))
       |> Map.put(:bugs, getBugs(tickets))
       |> Map.put(:priorities, getPriorities(tickets))
     end)
@@ -86,4 +86,26 @@ defmodule CodebaseHQ do
     |> Map.get("name")
   end
 
+  def getAssignments(project) do
+    HTTPoison.get!(@api <> "/" <>  Map.get(project, :permalink) <> "/assignments", headers, auth).body
+    |> Poison.decode!
+    |> Enum.map(&Map.get(&1, "user"))
+    |> Enum.filter(fn(x) -> x["company"] == "Epimorphics Limited" end)
+    |> Enum.map(&Map.get(&1, "email_address"))
+  end
+
+  def getUsers(projects) do
+    projects
+    |> Enum.map(fn(x) -> HTTPoison.get!(@api <> "/" <>  Map.get(x, :permalink) <> "/assignments", headers, auth).body
+    |> Poison.decode! end)
+    |> Enum.reduce([], &Enum.concat(&1, &2))
+    |> Enum.uniq
+    |> Enum.map(&Map.get(&1, "user"))
+    |> Enum.map(fn (x) -> 
+         x
+         |> Enum.reduce(%{}, fn({k,v}, all) ->
+              Map.merge(all, %{String.to_atom(k) => v})
+            end)
+       end)
+  end
 end

@@ -60,9 +60,23 @@ defmodule Github do
   end
 
   def getIssues(repoName) do
+    expected_fields = ~w(state labels)
     issuesLink = @api <> @reposEndpoint <> @epiEndpoint <> "/" <> repoName <> "/issues"
-    resp = HTTPoison.get!(issuesLink, headers, options)
-    Poison.decode!(resp.body)
+    HTTPoison.get!(issuesLink, headers, options).body
+    |> Poison.decode!
+    |> Enum.map(fn (x) ->
+         x
+         |> Map.take(expected_fields)
+         |> Enum.reduce(%{}, fn({k,v}, all) ->
+              Map.merge(all, %{String.to_atom(k) => v})
+            end)
+       end)
+  end
+
+  def addIssues(repos) do
+    repos
+    |> Enum.map(fn (repo) ->
+         Map.put(repo, :issues, getIssues(repo.name)) end)
   end
 
   def getOpen(issue) do
@@ -79,5 +93,22 @@ defmodule Github do
          [ x["name"] | acc]
       end)
   end
+
+  def getIssueTypes(issues) do
+    issues
+    |> Enum.map(fn(y) ->
+       y
+       |> Map.get(:labels)
+       |> Enum.map(fn(y) -> Map.get(y, "name") end) end)
+    |> Enum.reduce([], &Enum.concat(&1, &2))
+    |> Enum.reduce(%{}, fn(x, map) -> Map.put(map, x, Map.get(map, x, 0) + 1) end)
+  end
+
+  def addIssueTypes(repos) do
+    repos
+    |> Enum.map(fn (repo) ->
+         Map.put(repo, :issueTypes, getIssueTypes(repo.issues)) end)
+  end
+
 
 end
