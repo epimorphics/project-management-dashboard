@@ -3,11 +3,7 @@ defmodule HelloPhoenix.CodebaseHQView do
 
   def repos do
     Source.get(:codebaseHQ, :repos)
-  end
-
-  def bugs (repo) do
-    repo
-    |> Map.get(:bugs, 0)
+    |> Enum.map(&CodebaseHQ.toStandardForm(&1))
   end
 
 end

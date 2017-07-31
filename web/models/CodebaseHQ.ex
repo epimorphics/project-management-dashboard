@@ -15,12 +15,26 @@ defmodule CodebaseHQ do
 
   def codebaseHQ do
     repos = Enum.map(CodebaseHQ.getProjects, fn(y) ->
+
       tickets = getTickets(y[:permalink])
       Map.put(y, :users, getAssignments(y))
       |> Map.put(:bugs, getBugs(tickets))
       |> Map.put(:priorities, getPriorities(tickets))
     end)
-    %{:repos => repos}
+    %{:repos => repos, :users => getUsers(repos)}
+  end
+
+  def toStandardForm(project) do
+    users = Source.get(:users)
+    avatars = project.users
+      |> Enum.map(fn(email) -> Enum.find(users, fn(user) -> user.email_address == email end) |> Map.get(:avatar_url) end)
+      |> Enum.filter(fn(x) -> x != nil end)
+    metrics = [
+      "#{project.open_tickets} OPEN TICKETS",
+      "#{project.bugs} ACTIVE BUGS",
+      "#{Map.get(project.priorities, "Critical", 0)} CRITICAL ISSUES"
+    ]
+    %{:source => :cb, :name => project.name, :description => project.overview, :avatars => avatars, :metrics => metrics}
   end
 
   def getProjects do

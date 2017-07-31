@@ -7,7 +7,18 @@ defmodule Github do
   def github do
     repos = Github.getRepos
     |> addContributors
+    |> addIssues
+    |> addIssueTypes
     %{:repos => repos}
+  end
+
+  def toStandardForm(project) do
+    avatars = Enum.map(project.contributors, &Map.get(&1, :avatar_url))
+    metrics = [
+      "ACTIVE BUGS #{Map.get(project.issueTypes, "bug", 0)}",
+      "ISSUES #{project.open_issues}"
+    ]
+    %{source: :git, name: project.name, description: project.description, avatars: avatars, metrics: metrics}
   end
 
   def headers do
@@ -24,10 +35,15 @@ defmodule Github do
     HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint, headers, options)
   end
 
+  def processHeader(header) do
+  end
+
   def getRepos do
     expected_fields = ~w(name description open_issues )
     HTTPoison.start
-    HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers, options).body
+    resp = HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers, options)
+    processHeader(resp.headers)
+    resp.body
     |> Poison.decode!
     |> Enum.map(fn (x) ->
          x

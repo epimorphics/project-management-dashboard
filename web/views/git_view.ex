@@ -7,11 +7,7 @@ defmodule HelloPhoenix.GitView do
 
   def repos do
     Source.get(:github, :repos)
-  end
-
-  def contributors(name) do
-    Source.get(:github, :contributors)
-    |> Map.get(name)
+    |> Enum.map(&Github.toStandardForm(&1))
   end
 
 end
