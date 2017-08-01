@@ -34,7 +34,7 @@ defmodule CodebaseHQ do
       %{:text => "#{project.bugs} ACTIVE BUGS"},
       %{:text => "#{Map.get(project.priorities, "Critical", 0)} CRITICAL ISSUES"}
     ]
-    %{:source => :cb, :name => project.name, :description => project.overview, :avatars => avatars, :metrics => metrics}
+    %{:source => :cb, :name => project.name, :time => getLastUpdate(project), :description => project.overview, :avatars => avatars, :metrics => metrics}
   end
 
   def getProjects do
@@ -98,6 +98,15 @@ defmodule CodebaseHQ do
     |> Map.get("ticket")
     |> Map.get("type")
     |> Map.get("name")
+  end
+
+  def getLastUpdate(project) do
+    HTTPoison.get!(@api <> "/" <> Map.get(project, :permalink) <> "/activity", headers, auth).body
+    |> Poison.decode!
+    |> List.first
+    |> Map.get("event")
+    |> Map.get("timestamp")
+    |> Timex.parse!("{YYYY}-{M}-{D} {h24}:{m}:{s} UTC")
   end
 
   def getAssignments(project) do

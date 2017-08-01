@@ -18,7 +18,8 @@ defmodule Github do
       %{:text => "ACTIVE BUGS #{Map.get(project.issueTypes, "bug", 0)}"},
       %{:text => "ISSUES #{project.open_issues}"}
     ]
-    %{source: :git, name: project.name, description: project.description, avatars: avatars, metrics: metrics}
+    time = Timex.parse!(project.pushed_at, "{YYYY}-{M}-{D}T{h24}:{m}:{s}Z")
+    %{source: :git, name: project.name, description: project.description, avatars: avatars, time: time, metrics: metrics}
   end
 
   def headers do
@@ -27,7 +28,7 @@ defmodule Github do
   end
 
   def options do
-    [ssl: [{:versions, [:'tlsv1.2']}], recv_timeout: 2000]
+    [ssl: [{:versions, [:'tlsv1.2']}], recv_timeout: 6000]
   end
 
   def getOrg do
@@ -35,15 +36,24 @@ defmodule Github do
     HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint, headers, options)
   end
 
-  def processHeader(header) do
+  # HACK this will stop working once there are more than 91 repos
+  def getNext(responseHeaders) do
+    parsed = Enum.find(responseHeaders, fn(x) -> elem(x,0) == "Link" end)
+    |> elem(1)
+    |> String.split([";", ","])
+    |> Enum.map(&String.split(&1, ["<", ">"]))
+    |> List.flatten
+    |> Enum.filter(&String.contains?(&1, ["http"]))
+    |> Enum.reduce([], fn(url, all) -> 
+      resp = HTTPoison.get!(url , headers, options).body
+      |> decodeRepos
+      Enum.concat(resp, all)
+    end)
   end
 
-  def getRepos do
+  def decodeRepos(responseBody) do
     expected_fields = ~w(name description open_issues pushed_at)
-    HTTPoison.start
-    resp = HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers, options)
-    processHeader(resp.headers)
-    resp.body
+    responseBody
     |> Poison.decode!
     |> Enum.map(fn (x) ->
          x
@@ -52,6 +62,15 @@ defmodule Github do
               Map.merge(all, %{String.to_atom(k) => v})
             end)
        end)
+  end
+
+  def getRepos do
+    expected_fields = ~w(name description open_issues pushed_at)
+    HTTPoison.start
+    resp = HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers, options)
+    resp.body
+    |> decodeRepos
+    |> Enum.concat (getNext resp.headers)
   end
 
   def getContributors(name) do
