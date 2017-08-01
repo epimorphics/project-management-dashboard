@@ -1,1 +1,60 @@
 /* This file is for your main application css. */
+
+.repocontainer {
+  margin: 30px auto;
+}
+
+.heading {
+  background-color: #dddddd;
+  display: inline-block;
+  height: 50px;
+  width: 100%;
+  top: 0%;
+}
+
+.sourceLogo {
+  height: 50px;
+  float: left;
+}
+
+.repoName {
+  font-size: 35px;
+  margin: auto 10px;
+}
+
+.avatar {
+  float: right;
+  height: 50px;
+  width:50px;
+}
+
+.git {
+  content: url("https://assets-cdn.github.com/images/modules/logos_page/GitHub-Mark.png");
+}
+
+.cb {
+  content: url("https://pbs.twimg.com/profile_images/378800000410745178/8704302b5009e71d66fbc8f52cefc0bc_400x400.png");
+}
+
+.overview {
+  padding: 10px;
+  width: 45%;
+  margin: 0 auto;
+  background-color: #aaaaaa;
+}
+
+.metrics {
+  padding: 10px;
+  width: 55%;
+  background-color: #999999;
+}
+
+.metric {
+  font-size: 25px;
+}
+
+.lower {
+  width:100%;
+  height: 10px;
+  background-color: #666666;
+}

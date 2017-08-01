@@ -15,8 +15,8 @@ defmodule Github do
   def toStandardForm(project) do
     avatars = Enum.map(project.contributors, &Map.get(&1, :avatar_url))
     metrics = [
-      "ACTIVE BUGS #{Map.get(project.issueTypes, "bug", 0)}",
-      "ISSUES #{project.open_issues}"
+      %{:text => "ACTIVE BUGS #{Map.get(project.issueTypes, "bug", 0)}"},
+      %{:text => "ISSUES #{project.open_issues}"}
     ]
     %{source: :git, name: project.name, description: project.description, avatars: avatars, metrics: metrics}
   end
@@ -39,7 +39,7 @@ defmodule Github do
   end
 
   def getRepos do
-    expected_fields = ~w(name description open_issues )
+    expected_fields = ~w(name description open_issues pushed_at)
     HTTPoison.start
     resp = HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers, options)
     processHeader(resp.headers)

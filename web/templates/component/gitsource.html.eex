@@ -1,0 +1,18 @@
+<div class="repocontainer">
+  <div class="heading">
+    <img class="<%= @repo.source%> sourceLogo" ></img>
+    <span class="repoName"><%= @repo.name %></span>
+    <%= for avatar <- @repo.avatars do %>
+      <img class="avatar" src=<%= avatar %></img>
+    <%= end %>
+  </div>
+  <div style="display:flex;">
+    <div class="overview"><%= @repo.description %></div>
+    <div class="metrics">
+    <%= for metric <- @repo.metrics do %>
+      <div class="metric"><%= metric.text %></div>
+    <%= end %>
+    </div>
+  </div>
+  <div class="lower"></div>
+</div>

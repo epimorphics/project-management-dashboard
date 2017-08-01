@@ -30,9 +30,9 @@ defmodule CodebaseHQ do
       |> Enum.map(fn(email) -> Enum.find(users, fn(user) -> user.email_address == email end) |> Map.get(:avatar_url) end)
       |> Enum.filter(fn(x) -> x != nil end)
     metrics = [
-      "#{project.open_tickets} OPEN TICKETS",
-      "#{project.bugs} ACTIVE BUGS",
-      "#{Map.get(project.priorities, "Critical", 0)} CRITICAL ISSUES"
+      %{:text => "#{project.open_tickets} OPEN TICKETS"},
+      %{:text => "#{project.bugs} ACTIVE BUGS"},
+      %{:text => "#{Map.get(project.priorities, "Critical", 0)} CRITICAL ISSUES"}
     ]
     %{:source => :cb, :name => project.name, :description => project.overview, :avatars => avatars, :metrics => metrics}
   end
