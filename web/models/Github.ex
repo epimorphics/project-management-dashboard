@@ -38,16 +38,17 @@ defmodule Github do
 
   # HACK this will stop working once there are more than 91 repos
   def getNext(responseHeaders) do
-    parsed = Enum.find(responseHeaders, fn(x) -> elem(x,0) == "Link" end)
+    responseHeaders
+    |> Enum.find(fn(x) -> elem(x,0) == "Link" end)
     |> elem(1)
     |> String.split([";", ","])
     |> Enum.map(&String.split(&1, ["<", ">"]))
     |> List.flatten
     |> Enum.filter(&String.contains?(&1, ["http"]))
-    |> Enum.reduce([], fn(url, all) -> 
-      resp = HTTPoison.get!(url , headers, options).body
+    |> Enum.reduce([], fn(url, all) ->
+      HTTPoison.get!(url , headers, options).body
       |> decodeRepos
-      Enum.concat(resp, all)
+      |> Enum.concat(all)
     end)
   end
 
@@ -96,8 +97,8 @@ defmodule Github do
 
   def getIssues(repoName) do
     expected_fields = ~w(state labels)
-    issuesLink = @api <> @reposEndpoint <> @epiEndpoint <> "/" <> repoName <> "/issues"
-    HTTPoison.get!(issuesLink, headers, options).body
+    issues_link = @api <> @reposEndpoint <> @epiEndpoint <> "/" <> repoName <> "/issues"
+    HTTPoison.get!(issues_link, headers, options).body
     |> Poison.decode!
     |> Enum.map(fn (x) ->
          x
@@ -125,7 +126,7 @@ defmodule Github do
     issue
     |> Map.get("labels")
     |> Enum.reduce([], fn (x, acc) ->
-         [ x["name"] | acc]
+         [x["name"] | acc]
       end)
   end
 

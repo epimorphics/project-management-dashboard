@@ -9,7 +9,8 @@ defmodule Users do
   end
 
   def cbUsers(projects) do
-    Map.get(projects, :users)
+    projects
+    |> Map.get(:users)
     |> Enum.map(&Map.take(&1, [:email_address, :company, :first_name, :last_name, :username]))
   end
 
