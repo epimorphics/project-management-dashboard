@@ -8,6 +8,7 @@ defmodule Source do
     cb = CodebaseHQ.codebaseHQ
     Source.put(:codebaseHQ, cb)
     Source.put(:users, Users.createUsers(git, cb))
+    Source.put(:jenkins, Jenkins.getStatus)
   end
 
   def get(source) do

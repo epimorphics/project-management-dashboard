@@ -1,13 +1,13 @@
 <div class="repocontainer">
   <div class="heading">
     <img class="<%= @repo.source%> sourceLogo" ></img>
-    <span class="repoName"><%= @repo.name %></span>
+    <span class="repoName"><%= @repo.displayName %></span>
     <%= for avatar <- @repo.avatars do %>
       <img class="avatar" src=<%= avatar %></img>
     <%= end %>
   </div>
   <div style="display:flex;">
-    <div class="overview"><%= @repo.description %></div>
+    <div class="overview <%= if hasTest(@repo.name) do passingTests(@repo.name) end%>"><%= @repo.description %>  </div>
     <div class="metrics">
     <%= for metric <- @repo.metrics do %>
       <div class="metric"><%= metric.text %></div>

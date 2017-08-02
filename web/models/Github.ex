@@ -19,7 +19,7 @@ defmodule Github do
       %{:text => "ISSUES #{project.open_issues}"}
     ]
     time = Timex.parse!(project.pushed_at, "{YYYY}-{M}-{D}T{h24}:{m}:{s}Z")
-    %{source: :git, name: project.name, description: project.description, avatars: avatars, time: time, metrics: metrics}
+    %{source: :git, name: project.name, displayName: project.name, description: project.description, avatars: avatars, time: time, metrics: metrics}
   end
 
   def headers do

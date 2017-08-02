@@ -58,3 +58,11 @@
   height: 10px;
   background-color: #666666;
 }
+
+.passing {
+  background-color: #55AA55;
+}
+
+.failing {
+  background-color: #AA5555;
+}
