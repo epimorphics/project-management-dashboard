@@ -1,0 +1,3 @@
+<div>
+  <%= render HelloPhoenix.ComponentView, "project.html", repo: (repo @project) %>
+</div>

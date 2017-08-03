@@ -9,9 +9,13 @@
 
     <title>hello</title>
     <link rel="stylesheet" href="<%= static_path(@conn, "/css/app.css") %>">
+    <link rel="stylesheet" href="<%= static_path(@conn, "/css/components.css") %>">
   </head>
 
   <body>
+    <div id="app">
+      <my-app><my-app>
+    </div>
     <div class="container">
       <header class="header">
         <img style="height: 70px;padding-bottom: 20px;" src="/images/epimorphics-logo.png"></img>
