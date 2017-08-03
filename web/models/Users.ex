@@ -18,7 +18,7 @@ defmodule Users do
     gitusers = gitUsers(gitrepo)
     cbusers = cbUsers(cbrepo)
     mapping = %{"ian.dickinson@epimorphics.com" => "ijdickinson",  "dave@epimorphics.com" => "der", "brian@epimorphics.com" => "bwmcbride", "chris.dollin@epimorphics.com" => "ehedgehog"}
-    Enum.map(cbusers, fn(x) ->
+    cb = Enum.map(cbusers, fn(x) ->
       gitmap = Enum.find(gitusers, %{}, fn(user) ->
         user.login == mapping[x.email_address]
       end)

@@ -23,6 +23,7 @@ defmodule HelloPhoenix.Router do
     #get "/cb/:project", CodebaseHQController, :project
     get "/json", ProjectController, :projectJson
     get "/json/tests", ProjectController, :testJson
+    get "/json/users", ProjectController, :userJson
     resources "/users", UserController
   end
 

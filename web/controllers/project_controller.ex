@@ -22,4 +22,9 @@ defmodule HelloPhoenix.ProjectController do
     json conn, %{tests: jenkins}
   end
 
+  def userJson(conn, _params) do
+    users = Source.get(:users)
+    json conn, %{users: users}
+  end
+
 end
