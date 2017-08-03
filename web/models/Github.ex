@@ -15,8 +15,8 @@ defmodule Github do
   def toStandardForm(project) do
     avatars = Enum.map(project.contributors, &Map.get(&1, :avatar_url))
     metrics = [
-      %{:text => "ACTIVE BUGS #{Map.get(project.issueTypes, "bug", 0)}"},
-      %{:text => "ISSUES #{project.open_issues}"}
+      %{:text => "#{Map.get(project.issueTypes, "bug", 0)} ACTIVE BUGS"},
+      %{:text => "#{project.open_issues} OPEN ISSUES"}
     ]
     time = Timex.parse!(project.pushed_at, "{YYYY}-{M}-{D}T{h24}:{m}:{s}Z")
     %{source: :git, name: project.name, displayName: project.name, description: project.description, avatars: avatars, time: time, metrics: metrics}

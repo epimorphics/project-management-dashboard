@@ -6,4 +6,10 @@ defmodule HelloPhoenix.CodebaseHQView do
     Enum.map(cb_repos, &CodebaseHQ.toStandardForm(&1))
   end
 
+  def repo(name) do
+    Source.get(:codebaseHQ, :repos)
+    |> Enum.map(&CodebaseHQ.toStandardForm(&1))
+    |> Enum.find(fn(x) -> x.name == name end)
+  end
+
 end

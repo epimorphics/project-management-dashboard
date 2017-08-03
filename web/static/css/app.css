@@ -55,7 +55,7 @@
 
 .lower {
   width:100%;
-  height: 10px;
+  min-height: 20px;
   background-color: #666666;
 }
 

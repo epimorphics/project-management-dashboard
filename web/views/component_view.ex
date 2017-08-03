@@ -7,7 +7,7 @@ defmodule HelloPhoenix.ComponentView do
          x.name == name end)
   end
 
-  def passingTests(name) do
+  def passClass(name) do
     successful = Source.get(:jenkins)
     |> Enum.find(fn(x) -> x.name == name end)
     |> Map.get(:success)
@@ -15,6 +15,17 @@ defmodule HelloPhoenix.ComponentView do
     case successful do
       true -> "passing"
       false -> "failing"
+    end
+  end
+
+  def passBlurb(name) do
+    successful = Source.get(:jenkins)
+    |> Enum.find(fn(x) -> x.name == name end)
+    |> Map.get(:success)
+
+    case successful do
+      true -> "This Project is passing tests!"
+      false -> "This Project is failing tests!"
     end
   end
 

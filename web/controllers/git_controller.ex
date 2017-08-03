@@ -4,4 +4,8 @@ defmodule HelloPhoenix.GitController do
   def index(conn, _params) do
     render conn, "index.html"
   end
+
+  def project(conn, %{"project" => project}) do
+    render conn, "project.html", %{project: project}
+  end
 end

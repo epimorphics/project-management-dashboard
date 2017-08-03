@@ -17,10 +17,10 @@ defmodule HelloPhoenix.Router do
     pipe_through :browser # Use the default browser stack
 
     get "/", ProjectController, :index
-    get "/hello", HelloController, :index
-    get "/hello/:messenger", HelloController, :show
     get "/git", GitController, :index
+    get "/git/:project", GitController, :project
     get "/cb", CodebaseHQController, :index
+    get "/cb/:project", CodebaseHQController, :project
     resources "/users", UserController
   end
 

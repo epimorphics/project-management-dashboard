@@ -44,7 +44,16 @@ defmodule CodebaseHQ do
       %{:text => "#{project.bugs} ACTIVE BUGS"},
       %{:text => "#{Map.get(project.priorities, "Critical", 0)} CRITICAL ISSUES"}
     ]
-    %{:source => :cb, :name => project.permalink, :displayName => project.name, :time => project.time, :description => project.overview, :avatars => avatars, :metrics => metrics}
+
+    %{
+      :source => :cb,
+      :name => project.permalink,
+      :displayName => project.name,
+      :time => project.time,
+      :description => project.overview,
+      :avatars => avatars,
+      :metrics => metrics
+    }
   end
 
   def getProjects do

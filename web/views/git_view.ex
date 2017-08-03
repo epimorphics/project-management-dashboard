@@ -8,4 +8,10 @@ defmodule HelloPhoenix.GitView do
     |> Enum.map(&Github.toStandardForm(&1))
   end
 
+  def repo(name) do
+    Source.get(:github, :repos)
+    |> Enum.find(fn(repo) -> repo.name == name end)
+    |> Github.toStandardForm
+  end
+
 end
