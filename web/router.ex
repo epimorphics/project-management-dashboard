@@ -21,6 +21,8 @@ defmodule HelloPhoenix.Router do
     get "/git/:project", GitController, :project
     get "/cb", CodebaseHQController, :index
     get "/cb/:project", CodebaseHQController, :project
+    get "/json", ProjectController, :projectJson
+    get "/vue", VueController, :index
     resources "/users", UserController
   end
 

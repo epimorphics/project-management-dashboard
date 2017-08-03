@@ -13,12 +13,14 @@
   "devDependencies": {
     "babel-brunch": "~6.0.0",
     "babel-plugin-transform-runtime": "^6.23.0",
+    "babel-preset-vue": "^1.0.2",
     "brunch": "2.7.4",
     "clean-css-brunch": "~2.0.0",
     "css-brunch": "~2.0.0",
     "javascript-brunch": "~2.0.0",
     "node-sass": "^4.5.3",
     "uglify-js-brunch": "~2.0.1",
-    "vue-brunch": "git+https://github.com/nblackburn/vue-brunch.git"
+    "vue-brunch": "git+https://github.com/nblackburn/vue-brunch.git",
+    "vue2-brunch": "^1.0.1"
   }
 }

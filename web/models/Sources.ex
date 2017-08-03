@@ -3,9 +3,9 @@ defmodule Source do
   def start_link do
     Agent.start_link(fn -> %{} end, name: :sources)
     HTTPoison.start
-    git = Github.github
+    git = %{repos: []} #Github.github
     Source.put(:github, git)
-    cb = CodebaseHQ.codebaseHQ
+    cb =  %{repos: [], users: []} #CodebaseHQ.codebaseHQ
     Source.put(:codebaseHQ, cb)
     Source.put(:users, Users.createUsers(git, cb))
     Source.put(:jenkins, Jenkins.getStatus)
