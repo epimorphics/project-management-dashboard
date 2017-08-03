@@ -16,13 +16,13 @@ defmodule HelloPhoenix.Router do
   scope "/", HelloPhoenix do
     pipe_through :browser # Use the default browser stack
 
-    get "/", ProjectController, :index
-    get "/git", GitController, :index
-    get "/git/:project", GitController, :project
-    get "/cb", CodebaseHQController, :index
-    get "/cb/:project", CodebaseHQController, :project
+    #get "/", ProjectController, :index
+    #get "/git", GitController, :index
+    #get "/git/:project", GitController, :project
+    #get "/cb", CodebaseHQController, :index
+    #get "/cb/:project", CodebaseHQController, :project
     get "/json", ProjectController, :projectJson
-    get "/vue", VueController, :index
+    get "/json/tests", ProjectController, :testJson
     resources "/users", UserController
   end
 

@@ -17,4 +17,9 @@ defmodule HelloPhoenix.ProjectController do
     json conn, %{projects: allprojects}
   end
 
+  def testJson(conn, _params) do
+    jenkins = Source.get(:jenkins)
+    json conn, %{tests: jenkins}
+  end
+
 end

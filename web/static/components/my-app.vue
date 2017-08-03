@@ -2,6 +2,7 @@
   <div class="my-app">
     <ul v-for="project in projects">
       <li>{{project}}</li>
+      <projectcard></projectcard>
     </ul>
   </div>
 </template>
@@ -9,12 +10,32 @@
 <script>
 
 export default {
-  const x = 1;
-  console.log(x);
   data() {
     return {
-      projects: ["test", "test2"]
+      message: "",
+      test: "test",
+      projects: {}
     };
+  },
+  computed: {
+    messages() {
+      return this.$parent.messages
+    }
+  },
+  mounted() {
+    var xhr = new XMLHttpRequest();
+    var element = this;
+    xhr.onload = function() {
+      element.projects = JSON.parse(this.response).projects;
+    }
+    xhr.open("GET", "http://localhost:4000/json/", false);
+    xhr.send();
+  },
+  methods: {
+    sendMessage() {
+      this.$parent.channel.push("new_msg", {body: this.message })
+      this.message = ''
+    }
   }
 }
 </script>

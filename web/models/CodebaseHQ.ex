@@ -39,11 +39,10 @@ defmodule CodebaseHQ do
     end)
     |> Enum.filter(fn(x) -> x != nil end)
 
-    metrics = [
-      %{:text => "#{project.open_tickets} OPEN TICKETS"},
-      %{:text => "#{project.bugs} ACTIVE BUGS"},
-      %{:text => "#{Map.get(project.priorities, "Critical", 0)} CRITICAL ISSUES"}
-    ]
+    metrics = %{
+      :issues => project.open_tickets,
+      :bugs => project.bugs,
+      :critical => Map.get(project.priorities, "Critical", 0)}
 
     %{
       :source => :cb,
