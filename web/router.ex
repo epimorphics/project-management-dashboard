@@ -24,6 +24,9 @@ defmodule HelloPhoenix.Router do
     get "/json", ProjectController, :projectJson
     get "/json/tests", ProjectController, :testJson
     get "/json/users", ProjectController, :userJson
+    get "/json/git/:project", GitController, :projectJSON
+    get "/json/cb/:project", CodebaseHQController, :projectJSON
+    get "/json/project/:project", ProjectController, :projectsJson
     resources "/users", UserController
   end
 

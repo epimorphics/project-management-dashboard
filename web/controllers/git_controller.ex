@@ -8,4 +8,11 @@ defmodule HelloPhoenix.GitController do
   def project(conn, %{"project" => project}) do
     render conn, "project.html", %{project: project}
   end
+
+  def projectJSON(conn, %{"project" => project}) do
+    git = Source.get(:github, :repos)
+      |> Enum.map(&Github.toStandardForm(&1))
+      |> Enum.find(%{}, fn(x) -> x.name == project end)
+    json conn, git
+  end
 end
