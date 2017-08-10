@@ -25,7 +25,7 @@ defmodule Github do
   end
 
   def options do
-    [ssl: [{:versions, [:'tlsv1.2']}], recv_timeout: 10000]
+    [ssl: [{:versions, [:'tlsv1.2']}], recv_timeout: 30000]
   end
 
   def getOrg do

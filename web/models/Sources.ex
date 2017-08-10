@@ -9,6 +9,7 @@ defmodule Source do
     Source.put(:codebaseHQ, cb)
     Source.put(:users, Users.createUsers(git, cb))
     Source.put(:jenkins, Jenkins.getStatus)
+    Source.put(:trello, Trello.getBoards)
   end
 
   def get(source) do
