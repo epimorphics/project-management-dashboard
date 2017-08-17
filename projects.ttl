@@ -1,0 +1,54 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>.
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix foaf: <http://xmlns.com/foaf/0.1/>.
+@prefix doap: <http://usefulinc.com/ns/doap#>.
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix : <http://example/>.
+
+# Tutorial data from sparql.org
+## People
+## Books + Prices
+## Reviews
+
+:cb rdf:type rdfs:Class ;
+    rdf:subClassOf doap:GitBranch.
+:git rdf:type rdfs:Class ;
+    rdf:subClassOf doap:GitBranch.
+:trello rdf:type rdfs:Class .
+:jenkins rdf:type rdfs:Class .
+:transform rdf:type rdfs:Class .
+
+:epi-dash rdf:type :git ;
+       rdf:name "epi-dash" ;
+	   rdf:resource <http://localhost:4000/json/git/epi-dash> ;
+       :transform [
+         rdf:resource '{}'
+       ].
+
+:fsa-projects rdf:type :cb ;
+       rdf:name "fsa-projects" ;
+       rdf:resource <http://localhost:4000/json/cb/fsa-projects> ;
+       :transform [
+         rdf:resource '{}'
+       ].
+
+:data-platform rdf:type :cb ;
+       rdf:name "data-platform";
+       rdf:resource <http://localhost:4000/json/cb/data-platform> ;
+       :transform [
+         rdf:resource '{}'
+       ].
+
+:fsa-alerts rdf:type :trello ;
+       rdf:name "fsa-alerts" ;
+       rdf:resource <http://localhost:4000/json/trello/1fLs9xuC> ;
+       :transform [
+         rdf:resource '{"show":["Backlog","Due"],"name":"Backlog","merge":["current sprint BACKLOG","Task BACKLOG"]}'
+       ].
+
+:a rdf:type doap:project ;
+  rdf:name "Test Project" ;
+  rdf:resource <http://localhost:8080/#/project?name=testproject> ;
+:git (:epi-dash) ;
+:cb (:fsa-projects :data-platform) ;
+:trello (:fsa-alerts) .
