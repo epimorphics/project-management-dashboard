@@ -40,7 +40,11 @@ defmodule HelloPhoenix.ProjectController do
   end
 
   def testMultiSourceJSON(conn, _params) do
-    json conn, %{:name => "Test Project",:cb => [%{:name => "data-platform"}, %{:name =>"fsa-projects"}], :git => [%{:name => "epi-dash"}], :trello => [%{"1fLs9xuC" => %{:transform=> %{:merge => ["current sprint BACKLOG", "Task BACKLOG"], :name => "Backlog", :show => ["Backlog", "Due"]}}}]}
+    json conn, List.first Fuseki.getProjects
+  end
+
+  def testProjectJSON(conn, _params) do
+    json conn, Fuseki.getProjects
   end
 
 end
