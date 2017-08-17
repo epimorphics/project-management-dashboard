@@ -35,14 +35,14 @@ defmodule CodebaseHQ do
       user = Enum.find(users, fn(user) ->
         user.email_address == email
       end)
-      Map.get(user, :avatar_url)
+      Map.get(user, :login)
     end)
     |> Enum.filter(fn(x) -> x != nil end)
 
     metrics = %{
-      :issues => project.open_tickets,
-      :bugs => project.bugs,
-      :critical => Map.get(project.priorities, "Critical", 0)}
+      :Issues => project.open_tickets,
+      :Bugs => project.bugs,
+      :Critical => Map.get(project.priorities, "Critical", 0)}
 
     %{
       :source => :cb,
