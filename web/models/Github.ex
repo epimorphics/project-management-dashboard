@@ -68,7 +68,7 @@ defmodule Github do
     resp = HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers, options)
     resp.body
     |> decodeRepos
-    |> Enum.concat (getNext resp.headers)
+    |> Enum.concat(getNext resp.headers)
   end
 
   def getContributors(name) do

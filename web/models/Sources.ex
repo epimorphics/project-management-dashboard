@@ -24,5 +24,17 @@ defmodule Source do
     Agent.update(:sources, &Map.put(&1, key, value))
   end
 
+  def addToGraph do
+    git = Source.get(:github, :repos)
+    cb = Source.get(:codebaseHQ, :repos)
+    jenkins = Source.get(:jenkins)
+    users = Source.get(:users)
+    Enum.map(cb, fn(x) -> Fuseki.putStandardForm(CodebaseHQ.toStandardForm(x)) end)
+    |> Kernel.++ Enum.map(git, fn(x) -> Fuseki.putStandardForm(Github.toStandardForm(x)) end)
+    |> Kernel.++ Enum.map(jenkins, fn(x) ->
+      Fuseki.updateDB("INSERT DATA { :" <> x.name<> " :test " <> to_string(x.success) <> "}")
+    end)
+  end
+
 end
 

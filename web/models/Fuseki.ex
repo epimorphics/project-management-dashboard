@@ -8,7 +8,17 @@ defmodule Fuseki do
 
   def updateDB(sparqlquery) do
     HTTPoison.start
-    HTTPoison.post("http://localhost:3030/ds/update", Poison.encode!(%{}), [{"Content-Type", "application/x-www-form-urlencoded"}], params: [{"update", prefixes() <> sparqlquery}])
+    {:ok, status} = HTTPoison.post("http://localhost:3030/ds/update", Poison.encode!(%{}), [{"Content-Type", "application/x-www-form-urlencoded"}], params: [{"update", prefixes() <> sparqlquery}])
+	{:ok, status.status_code}
+	
+  end
+
+  def putStandardForm(project) do
+    updateDB("INSERT DATA { " <>
+      ":" <> project.name <> " rdf:type :" <> Atom.to_string(project.source) <> " ;" <>
+                             " rdf:name \"" <> project.displayName <> "\"; " <>
+                             " rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> project.name <> "> ; " <>
+    "}")
   end
 
   def parseJSON(json) do
@@ -27,7 +37,9 @@ defmodule Fuseki do
     "prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
      prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
      prefix owl: <http://www.w3.org/2002/07/owl#>
-     prefix : <http://example/> prefix doap: <http://usefulinc.com/ns/doap#>"
+     prefix : <http://example/>
+     prefix doap: <http://usefulinc.com/ns/doap#>
+     "
   end
 
   def getProjects do

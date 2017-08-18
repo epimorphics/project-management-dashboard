@@ -29,7 +29,7 @@ defmodule Jenkins do
         |> Kernel.== "SUCCESS"
 
       Map.put(remote, :success, success)
-      |> Map.put(Map.get(x, "name"), :ciname)
+      |> Map.put(:ciname, Map.get(x, "name"))
     end)
   end
 
