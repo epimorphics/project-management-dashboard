@@ -49,6 +49,6 @@
 :a rdf:type doap:project ;
   rdf:name "Test Project" ;
   rdf:resource <http://localhost:8080/#/project?name=testproject> ;
-:git (:epi-dash) ;
-:cb (:fsa-projects :data-platform) ;
-:trello (:fsa-alerts) .
+:git ("epi-dash") ;
+:cb ("fsa-projects" "data-platform") ;
+:trello ("FSA Alerts") .

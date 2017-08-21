@@ -15,8 +15,9 @@ defmodule Fuseki do
 
   def putStandardForm(project) do
     updateDB("INSERT DATA { " <>
-      ":" <> project.name <> " rdf:type :" <> Atom.to_string(project.source) <> " ;" <>
-                             " rdf:name \"" <> project.displayName <> "\"; " <>
+      "_:project" <> " rdf:type :" <> Atom.to_string(project.source) <> " ;" <>
+                  " rdf:name \"" <> project.name <> "\" ; " <>
+                             " :displayName \"" <> project.displayName <> "\"; " <>
                              " rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> project.name <> "> ; " <>
     "}")
   end
@@ -32,6 +33,16 @@ defmodule Fuseki do
     end)
   end
 
+  def putTrello(json) do
+    updateDB("INSERT DATA { " <>
+      "_:trello rdf:type :trello ; " <>
+      "xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" ; " <>
+                       " rdf:resource <http://localhost:4000/json/" <> to_string(json.source) <> "/" <> json.shortLink <> "> ; " <>
+      ":shortlink \"" <> json.shortLink <> "\" ; " <>
+               "rdf:name \"" <> json.name <> "\" ;" <>
+      Enum.reduce(json.metrics, "", fn({k, v}, all) -> all <> " :data [" <> " :metric \"" <> k <>  "\" ; :data " <> to_string(v) <> " ; ]; " end) <>
+      " }")
+  end
 
   def prefixes do
     "prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
@@ -39,6 +50,7 @@ defmodule Fuseki do
      prefix owl: <http://www.w3.org/2002/07/owl#>
      prefix : <http://example/>
      prefix doap: <http://usefulinc.com/ns/doap#>
+     prefix xsd: <http://www.w3.org/2001/XMLSchema#>
      "
   end
 
@@ -54,29 +66,56 @@ defmodule Fuseki do
   end
 
   def getCB(projects) do
-    cb = queryDB("SELECT ?item ?url ?transform WHERE { ?project rdf:type doap:project. ?project rdf:name ?name. ?project :cb/rdf:rest*/rdf:first ?item. ?item :transform/rdf:resource ?transform. ?item rdf:resource ?url. }")
+    cb = queryDB(
+      "SELECT ?projectName ?name ?url ?displayName
+       WHERE {
+       ?project rdf:type doap:project .
+       ?project rdf:name ?projectName .
+       ?project :cb/rdf:rest*/rdf:first ?name .
+       ?a rdf:name ?name .
+       ?a rdf:resource ?url .
+       ?a :displayName ?displayName . }")
     |> parseJSON
-    Enum.map(projects, fn(project) ->
-      list = Enum.filter(cb, fn(result) -> Map.get(result, "name") == project["name"] end)
-      |> Enum.map(fn(x) -> %{:transform => Poison.decode!(x["transform"]), :url => x["url"]} end)
+     Enum.map(projects, fn(project) ->
+      list = Enum.filter(cb, fn(result) -> Map.get(result, "projectName") == project.name end)
+             |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
       Map.put(project, :cb, list) end)
   end
 
   def getGit(projects) do
-    git = queryDB("SELECT ?item ?url ?transform WHERE { ?project rdf:type doap:project. ?project rdf:name ?name. ?project :git/rdf:rest*/rdf:first ?item. ?item :transform/rdf:resource ?transform. ?item rdf:resource ?url. }")
+    git = queryDB(
+      "SELECT ?projectName ?name ?url ?displayName
+       WHERE {
+       ?project rdf:type doap:project .
+       ?project rdf:name ?projectName .
+       ?project :git/rdf:rest*/rdf:first ?name .
+       ?a rdf:name ?name .
+       ?a rdf:resource ?url .
+       ?a :displayName ?displayName . }")
     |> parseJSON
-    Enum.map(projects, fn(project) ->
-      list = Enum.filter(git, fn(result) -> Map.get(result, "name") == project["name"] end)
-      |> Enum.map(fn(x) -> %{:transform => Poison.decode!(x["transform"]), :url => x["url"]} end)
+     Enum.map(projects, fn(project) ->
+      list = Enum.filter(git, fn(result) -> Map.get(result, "projectName") == project.name end)
+      |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
       Map.put(project, :git, list) end)
   end
 
   def getTrello(projects) do
-    trello = queryDB("SELECT ?item ?url ?transform WHERE { ?project rdf:type doap:project. ?project rdf:name ?name. ?project :trello/rdf:rest*/rdf:first ?item. ?item :transform/rdf:resource ?transform. ?item rdf:resource ?url. }")
+    trello = queryDB(
+      "SELECT ?projectName ?name ?displayName ?url
+      WHERE {
+           ?project rdf:type doap:project .
+           ?project rdf:name ?projectName .
+           ?project :trello/rdf:rest*/rdf:first ?displayName .
+           ?itemid rdf:name ?displayName .
+           ?itemid :shortlink ?name .
+           ?itemid rdf:resource ?url .
+      }"
+    )
     |> parseJSON
     Enum.map(projects, fn(project) ->
-      list = Enum.filter(trello, fn(result) -> Map.get(result, "name") == project["name"] end)
-      |> Enum.map(fn(x) -> %{:transform => Poison.decode!(x["transform"]), :url => x["url"]} end)
+    
+    list = Enum.filter(trello, fn(result) -> Map.get(result, "projectName") == project.name end)
+      |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
       Map.put(project, :trello, list) end)
   end
 end
