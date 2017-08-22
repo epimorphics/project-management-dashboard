@@ -25,6 +25,7 @@ defmodule HelloPhoenix.Router do
     get "/json/trello", TrelloController, :trelloJSON
     get "/json/trello/:name", TrelloController, :boardJSON
     get "/json/projects", ProjectController, :testProjectJSON
+    get "/update", ProjectController, :update
     resources "/users", UserController
   end
 

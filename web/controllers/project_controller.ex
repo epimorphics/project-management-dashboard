@@ -26,4 +26,10 @@ defmodule HelloPhoenix.ProjectController do
     json conn, Fuseki.getProjects
   end
 
+  def update(conn, _params) do
+    Source.start_link
+    Source.addToGraph
+    json conn, %{:done => "success"}
+  end
+
 end
