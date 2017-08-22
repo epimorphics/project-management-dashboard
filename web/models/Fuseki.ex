@@ -243,7 +243,8 @@ defmodule Fuseki do
         ?type rdf:label ?source .
         OPTIONAL {
           ?x rdf:Description ?description .
-          ?x :test ?test
+          ?x :lastTest ?testId .
+          ?testId xsd:boolean ?test .
         }
       }
     ")
@@ -303,7 +304,8 @@ defmodule Fuseki do
         ?type rdf:label ?source .
         OPTIONAL {
           ?x rdf:Description ?description .
-          ?x :test ?test
+          ?x :lastTest ?testId .
+          ?testId xsd:boolean ?test .
         }
       }
     ")
@@ -339,7 +341,23 @@ defmodule Fuseki do
   def putTests do
     Source.get(:jenkins)
     |> Enum.map(fn(x) ->
-        updateDB("INSERT { ?project :test  " <> to_string(x.success) <> " . } WHERE { ?project rdf:name \""<> x.name<> "\" . }") end)
+      updateDB("
+        DELETE { ?project :lastTest ?a }
+        WHERE {
+          ?project rdf:name \"" <> x.name <> "\" .
+          ?project :lastTest ?a
+        };
+
+        INSERT {
+          _:newTest xsd:boolean " <> to_string(x.success) <> " .
+          _:newTest xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" .
+          ?project :test _:newTest .
+          ?project :lastTest _:newTest .
+        }
+        WHERE {
+          ?project rdf:name \"" <> x.name <> "\" .
+        }
+       ") end)
   end
 end
 
