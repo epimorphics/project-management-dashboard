@@ -181,6 +181,41 @@ defmodule Fuseki do
     |> Map.merge(details)
   end
 
+  def getTrelloJSON do
+    metrics = queryDB("
+      SELECT ?shortlink ?metricName ?value
+      WHERE {
+        ?a :shortlink ?shortlink .
+        ?a rdf:name ?name .
+        ?a :metric ?metric .
+        ?metric rdf:name ?metricName .
+        ?metric :data ?x .
+        ?x xsd:integer ?value
+      }")
+    |> parseJSON
+    |> Enum.reduce(%{}, fn(x, all) ->
+      update = Map.get(all, x["shortlink"], %{})
+      |> Map.put(x["metricName"], String.to_integer(x["value"]))
+
+      Map.put(all, x["shortlink"], update)
+    end)
+    details = queryDB("
+      SELECT ?shortlink ?name ?url
+      WHERE {
+        ?a :shortlink ?shortlink .
+        ?a rdf:name ?name .
+        ?a rdf:resource ?url .
+      }
+      ")
+    |> parseJSON
+
+    Enum.map(details, fn(x) ->
+      Map.put(x, "metrics", metrics[x["shortlink"]])
+      |> Map.put("stats", metrics[x["shortlink"]])
+      |> Map.put("source", "trello")
+    end)
+  end
+
   def getProjectJSON do
     avatars = queryDB("
       select ?name ?avatar

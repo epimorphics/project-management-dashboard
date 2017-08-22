@@ -16,17 +16,11 @@ defmodule HelloPhoenix.Router do
   scope "/", HelloPhoenix do
     pipe_through :browser # Use the default browser stack
 
-    #get "/", ProjectController, :index
-    #get "/git", GitController, :index
-    #get "/git/:project", GitController, :project
-    #get "/cb", CodebaseHQController, :index
-    #get "/cb/:project", CodebaseHQController, :project
-    get "/json", ProjectController, :projectJson
-    get "/json/tests", ProjectController, :testJson
-    get "/json/users", ProjectController, :userJson
-    get "/json/git/:project", GitController, :projectJSON
-    get "/json/cb/:project", CodebaseHQController, :projectJSON
-    get "/json/project/:project", ProjectController, :projectsJson
+    #get "/json/users", ProjectController, :userJson
+    get "/json/repos", ProjectController, :reposJson
+    get "/json/git/:project", ProjectController, :repoJson
+    get "/json/cb/:project", ProjectController, :repoJson
+    get "/json/project/:project", ProjectController, :repoJson
     get "/json/testproject", ProjectController, :testMultiSourceJSON
     get "/json/trello", TrelloController, :trelloJSON
     get "/json/trello/:name", TrelloController, :boardJSON
