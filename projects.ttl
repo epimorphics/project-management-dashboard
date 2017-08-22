@@ -11,37 +11,17 @@
 ## Reviews
 
 :cb rdf:type rdfs:Class ;
-    rdf:subClassOf doap:GitBranch.
+    rdf:subClassOf doap:GitBranch ;
+    rdf:label "cb" .
 :git rdf:type rdfs:Class ;
-    rdf:subClassOf doap:GitBranch.
-:trello rdf:type rdfs:Class .
-:jenkins rdf:type rdfs:Class .
+    rdf:subClassOf doap:GitBranch ;
+    rdf:label "git" .
+:trello rdf:type rdfs:Class ;
+    rdf:label "trello" .
+:jenkins rdf:type rdfs:Class ;
+    rdf:label "jenkins" .
 :transform rdf:type rdfs:Class .
 
-#:epi-dash rdf:type :git ;
-#       rdf:name "epi-dash" ;
-#       rdf:resource <http://localhost:4000/json/git/epi-dash> ;
-:epi-dash :transform [
-         rdf:resource '{}'
-       ].
-
-#:fsa-projects rdf:type :cb ;
-#       rdf:name "fsa-projects" ;
-#       rdf:resource <http://localhost:4000/json/cb/fsa-projects> ;
-:fsa-projects :transform [
-         rdf:resource '{}'
-       ].
-
-#:data-platform rdf:type :cb ;
-#       rdf:name "data-platform";
-#       rdf:resource <http://localhost:4000/json/cb/data-platform> ;
-:data-platform :transform [
-         rdf:resource '{}'
-       ].
-
-# :fsa-alerts rdf:type :trello ;
-#       rdf:name "fsa-alerts" ;
-#       rdf:resource <http://localhost:4000/json/trello/1fLs9xuC> ;
 :fsa-alerts :transform [
          rdf:resource '{"show":["Backlog","Due"],"name":"Backlog","merge":["current sprint BACKLOG","Task BACKLOG"]}'
        ].
@@ -52,3 +32,15 @@
 :git ("epi-dash") ;
 :cb ("fsa-projects" "data-platform") ;
 :trello ("FSA Alerts") .
+
+_:ian rdf:type foaf:person ;
+      :email "ian.dickinson@epimorphics.com";
+      :github "ijdickinson";
+      :codebaseHQ "ijdickinson".
+
+_:alex rdf:type foaf:person ;
+       :email "alex.coley@epimorphics.com" ;
+       :github "";
+       :codebaseHQ "alex-coley-57" .
+
+

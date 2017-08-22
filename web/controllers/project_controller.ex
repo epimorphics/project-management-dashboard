@@ -6,27 +6,29 @@ defmodule HelloPhoenix.ProjectController do
   end
 
   def projectJson(conn, _params) do
-    cb = Source.get(:codebaseHQ, :repos)
-    standardcb = Enum.map(cb, &CodebaseHQ.toStandardForm(&1))
+    #cb = Source.get(:codebaseHQ, :repos)
+    #standardcb = Enum.map(cb, &CodebaseHQ.toStandardForm(&1))
 
-    git = Source.get(:github, :repos)
-    standardgit = Enum.map(git, &Github.toStandardForm(&1))
+    #git = Source.get(:github, :repos)
+    #standardgit = Enum.map(git, &Github.toStandardForm(&1))
 
-    allprojects = Enum.concat(standardgit, standardcb)
-    |> Enum.sort(fn(x, y) -> Timex.compare(x.time, y.time) >= 0 end)
-    json conn, %{projects: allprojects}
+    #allprojects = Enum.concat(standardgit, standardcb)
+    #|> Enum.sort(fn(x, y) -> Timex.compare(x.time, y.time) >= 0 end)
+    #json conn, %{projects: allprojects}
+    json conn, %{projects: Fuseki.getProjectJSON}
   end
 
   def projectsJson(conn, %{"project" => project}) do
-    cb = Source.get(:codebaseHQ, :repos)
-    standardcb = Enum.map(cb, &CodebaseHQ.toStandardForm(&1))
+    #cb = Source.get(:codebaseHQ, :repos)
+    #standardcb = Enum.map(cb, &CodebaseHQ.toStandardForm(&1))
 
-    git = Source.get(:github, :repos)
-    standardgit = Enum.map(git, &Github.toStandardForm(&1))
+    #git = Source.get(:github, :repos)
+    #standardgit = Enum.map(git, &Github.toStandardForm(&1))
 
-    allprojects = Enum.concat(standardgit, standardcb)
-      |> Enum.find(%{}, fn(x) -> x.name == project end)
-    json conn, allprojects
+    #allprojects = Enum.concat(standardgit, standardcb)
+    #  |> Enum.find(%{}, fn(x) -> x.name == project end)
+    #json conn, allprojects
+    json conn, %{projects: Fuseki.getProjectJSON(project)}
   end
 
   def testJson(conn, _params) do

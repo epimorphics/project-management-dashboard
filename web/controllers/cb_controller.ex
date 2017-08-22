@@ -10,9 +10,10 @@ defmodule HelloPhoenix.CodebaseHQController do
   end
 
   def projectJSON(conn, %{"project" => project}) do
-    cb = Source.get(:codebaseHQ, :repos)
-      |> Enum.map(&CodebaseHQ.toStandardForm(&1))
-      |> Enum.find(%{}, fn(x) -> x.name == project end)
-    json conn, cb
+    #cb = Source.get(:codebaseHQ, :repos)
+    # |> Enum.map(&CodebaseHQ.toStandardForm(&1))
+    #  |> Enum.find(%{}, fn(x) -> x.name == project end)
+    #json conn, cb
+    json conn, %{projects: Fuseki.getProjectJSON(project)}
   end
 end

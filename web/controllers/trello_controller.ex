@@ -7,9 +7,10 @@ defmodule HelloPhoenix.TrelloController do
 
   def boardJSON(conn, %{"name" => name}) do
     IO.puts(name)
-    selected = Source.get(:trello)
-      |> Enum.find(fn(x) -> Map.get(x, :shortLink) == name end)
-    json conn, Trello.toStandardForm(selected)
+    #selected = Source.get(:trello)
+    #  |> Enum.find(fn(x) -> Map.get(x, :shortLink) == name end)
+    #json conn, Trello.toStandardForm(selected)
+    json conn, Fuseki.getTrelloJSON(name)
   end
 
 end

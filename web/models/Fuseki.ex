@@ -14,12 +14,38 @@ defmodule Fuseki do
   end
 
   def putStandardForm(project) do
-    updateDB("INSERT DATA { " <>
+     [ updateDB("INSERT DATA { " <>
       "_:project" <> " rdf:type :" <> Atom.to_string(project.source) <> " ;" <>
-                  " rdf:name \"" <> project.name <> "\" ; " <>
-                             " :displayName \"" <> project.displayName <> "\"; " <>
-                             " rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> project.name <> "> ; " <>
-    "}")
+      " rdf:name \"" <> project.name <> "\" ; " <>
+      " :displayName \"" <> project.displayName <> "\"; " <>
+      " rdf:Description \"" <> to_string(project.description) <> "\"; " <>
+      Enum.reduce(project.metrics, "", fn({k, v}, all) ->
+        all <> " :metric [" <>
+          " rdf:name \"" <> to_string(k) <>  "\" ;" <>
+          " :data [ " <>
+            "xsd:integer " <> to_string(v) <> " ; " <>
+            "xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" " <>
+        " ] ] ;" end) <>
+      " rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> project.name <> "> ; " <>
+    "}") ]
+    |> Kernel.++ Enum.map(project.avatars, fn(x) ->
+      updateDB("INSERT {
+        ?person :worksOn ?project ;
+      } WHERE {
+        ?person :login \"" <> x <> "\" .
+        ?project rdf:name \"" <> project.name <> "\" .
+      }") end)
+  end
+
+  def putUsers() do
+    Source.get(:users)
+    |> Enum.filter(fn(x) -> 
+      x.company == "Epimorphics Limited" end)
+    |> Enum.map(fn(user) -> updateDB("INSERT DATA { " <>
+      "_:tempUser rdf:type foaf:person ; " <>
+        Enum.reduce(user, "", fn({k, v}, all) ->
+          all <> " :" <> to_string(k) <> " \"" <> v <> "\" ; " end) <>
+    "} ") end)
   end
 
   def parseJSON(json) do
@@ -36,11 +62,16 @@ defmodule Fuseki do
   def putTrello(json) do
     updateDB("INSERT DATA { " <>
       "_:trello rdf:type :trello ; " <>
-      "xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" ; " <>
                        " rdf:resource <http://localhost:4000/json/" <> to_string(json.source) <> "/" <> json.shortLink <> "> ; " <>
       ":shortlink \"" <> json.shortLink <> "\" ; " <>
-               "rdf:name \"" <> json.name <> "\" ;" <>
-      Enum.reduce(json.metrics, "", fn({k, v}, all) -> all <> " :data [" <> " :metric \"" <> k <>  "\" ; :data " <> to_string(v) <> " ; ]; " end) <>
+      Enum.reduce(json.metrics, "", fn({k, v}, all) ->
+        all <> " :metric [" <>
+          " rdf:name \"" <> k <>  "\" ;" <>
+          " :data [ " <>
+            "xsd:integer " <> to_string(v) <> " ; " <>
+            "xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" " <>
+        " ] ] ;" end) <>
+       "rdf:name \"" <> json.name <> "\" " <>
       " }")
   end
 
@@ -50,6 +81,7 @@ defmodule Fuseki do
      prefix owl: <http://www.w3.org/2002/07/owl#>
      prefix : <http://example/>
      prefix doap: <http://usefulinc.com/ns/doap#>
+     prefix foaf: <http://xmlns.com/foaf/0.1/>
      prefix xsd: <http://www.w3.org/2001/XMLSchema#>
      "
   end
@@ -118,4 +150,162 @@ defmodule Fuseki do
       |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
       Map.put(project, :trello, list) end)
   end
+
+  def getTrelloJSON(shortlink) do
+    out = %{:source => :trello, :shortlink => shortlink}
+    metrics = queryDB("
+      SELECT ?metricName ?value
+      WHERE {
+        ?a :shortlink \"" <> shortlink <> "\" .
+        ?a rdf:name ?name .
+        ?a :metric ?metric .
+        ?metric rdf:name ?metricName .
+        ?metric :data ?x .
+        ?x xsd:integer ?value
+      }")
+      |> parseJSON
+      |> Enum.reduce(%{}, fn(x, all) -> Map.put(all, x["metricName"], x["value"]) end)
+    details = queryDB("
+      SELECT ?name ?url
+      WHERE {
+        ?a :shortlink \"" <> shortlink <> "\" .
+        ?a rdf:name ?name .
+        ?a rdf:resource ?url .
+      }
+      ")
+    |> parseJSON
+    |> List.first
+
+    Map.put(out, :metrics, metrics)
+    |> Map.put(:stats, metrics)
+    |> Map.merge(details)
+  end
+
+  def getProjectJSON do
+    avatars = queryDB("
+      select ?name ?avatar
+      where {
+        ?project rdf:name ?name .
+        ?person :worksOn ?project .
+        ?person :first_name ?first .
+        ?person :last_name ?last .
+        ?person :avatar_url ?avatar .
+        ?person :login ?login
+      }
+    ")
+    |> parseJSON
+    |> Enum.reduce(%{}, fn(x, all) ->
+      avatars = Map.get(all, x["name"], [])
+      |> Kernel.++ [ x["avatar"] ]
+
+      Map.put(all, x["name"], avatars) end)
+    details = queryDB("
+      select ?name ?displayName ?description ?source ?test
+      where {
+        ?x rdf:name ?name .
+        ?x :displayName ?displayName .
+        ?x rdf:type ?type .
+        ?type rdf:label ?source .
+        OPTIONAL {
+          ?x rdf:Description ?description .
+          ?x :test ?test
+        }
+      }
+    ")
+    |> parseJSON
+    metrics = queryDB("
+      select ?projectName ?metricName ?value
+      where {
+        ?x rdf:name ?projectName .
+        ?x rdf:type ?type .
+        ?x :metric ?y.
+        ?y rdf:name ?metricName.
+        ?y :data ?data.
+        ?data xsd:integer ?value .
+        FILTER(?type IN (:cb, :git))
+      }
+    ")
+    |> parseJSON
+    |> Enum.reduce(%{}, fn(x, all) ->
+      update = Map.get(all, x["projectName"], %{})
+      |> Map.put(x["metricName"], String.to_integer(x["value"]))
+
+      Map.put(all, x["projectName"], update)
+    end)
+    Enum.map(details, fn(x) ->
+      x
+      |> Map.put("metrics", metrics[x["name"]])
+      |> Map.put("avatars", avatars[x["name"]])
+    end)
+  end
+
+  def getProjectJSON(name) do
+    avatars = queryDB("
+      select ?name ?avatar
+      where {
+        ?project rdf:name \"" <> name  <> "\" .
+        ?project rdf:name ?name .
+        ?person :worksOn ?project .
+        ?person :first_name ?first .
+        ?person :last_name ?last .
+        ?person :avatar_url ?avatar .
+        ?person :login ?login
+      }
+    ")
+    |> parseJSON
+    |> Enum.reduce(%{}, fn(x, all) ->
+      avatars = Map.get(all, x["name"], [])
+      |> Kernel.++ [ x["avatar"] ]
+
+      Map.put(all, x["name"], avatars) end)
+    details = queryDB("
+      select ?name ?displayName ?description ?source ?test
+      where {
+        ?x rdf:name \"" <> name  <> "\" .
+        ?x rdf:name ?name .
+        ?x :displayName ?displayName .
+        ?x rdf:type ?type .
+        ?type rdf:label ?source .
+        OPTIONAL {
+          ?x rdf:Description ?description .
+          ?x :test ?test
+        }
+      }
+    ")
+    |> parseJSON
+    metrics = queryDB("
+      select ?projectName ?metricName ?value
+      where {
+        ?x rdf:name \"" <> name  <> "\" .
+        ?x rdf:name ?projectName .
+        ?x rdf:type ?type .
+        ?x :metric ?y.
+        ?y rdf:name ?metricName.
+        ?y :data ?data.
+        ?data xsd:integer ?value .
+        FILTER(?type IN (:cb, :git))
+      }
+    ")
+    |> parseJSON
+    |> Enum.reduce(%{}, fn(x, all) ->
+      update = Map.get(all, x["projectName"], %{})
+      |> Map.put(x["metricName"], String.to_integer(x["value"]))
+
+      Map.put(all, x["projectName"], update)
+    end)
+    Enum.map(details, fn(x) ->
+      x
+      |> Map.put("metrics", metrics[x["name"]])
+      |> Map.put("avatars", avatars[x["name"]])
+    end)
+    |> List.first
+  end
+
+  def putTests do
+    Source.get(:jenkins)
+    |> Enum.map(fn(x) ->
+        updateDB("INSERT { ?project :test  " <> to_string(x.success) <> " . } WHERE { ?project rdf:name \""<> x.name<> "\" . }") end)
+  end
 end
+
+
