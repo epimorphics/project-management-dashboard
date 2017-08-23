@@ -16,7 +16,7 @@ defmodule Trello do
   end
 
   def toStandardForm(board) do
-    %{:source => "trello", :name => board.name, :metrics => Map.merge(board.deadlines, board.stats), :stats => board.stats, :deadlines => board.deadlines, :shortLink => board.shortLink}
+    %{:source => :trello, :name => board.name, :metrics => Map.merge(board.deadlines, board.stats), :stats => board.stats, :deadlines => board.deadlines, :shortLink => board.shortLink, :description => "", :displayName => board.name}
   end
 
   def getBoards do

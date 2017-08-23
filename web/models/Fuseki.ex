@@ -20,58 +20,7 @@ defmodule Fuseki do
   def updateDB(sparqlquery) do
     HTTPoison.start
     {:ok, status} = HTTPoison.post("http://localhost:3030/ds/update", Poison.encode!(%{}), [{"Content-Type", "application/x-www-form-urlencoded"}], params: [{"update", prefixes() <> sparqlquery}])
-	{:ok, status.status_code}
-	
-  end
-
-  def putStandardForm(project) do
-     [ updateDB("INSERT DATA { " <>
-      "_:project" <> " rdf:type :" <> Atom.to_string(project.source) <> " ;" <>
-      " rdf:name \"" <> project.name <> "\" ; " <>
-      " :displayName \"" <> project.displayName <> "\"; " <>
-      " rdf:Description \"" <> to_string(project.description) <> "\"; " <>
-      Enum.reduce(project.metrics, "", fn({k, v}, all) ->
-        all <> " :metric [" <>
-          " rdf:type :metric ;" <>
-          " rdf:name \"" <> to_string(k) <>  "\" ;" <>
-        " ] ;" end) <>
-      " rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> project.name <> "> ; " <>
-    "}") ]
-    |> Kernel.++ Enum.map(project.avatars, fn(x) ->
-      updateDB("INSERT {
-        ?person :worksOn ?project ;
-      } WHERE {
-        ?person :login \"" <> x <> "\" .
-        ?project rdf:name \"" <> project.name <> "\" .
-      }") end)
-    |> Kernel.++ putMetricData(project)
-  end
-
-  def putMetricData(project) do
-    Enum.reduce(project.metrics, "", fn({k, v}, all) ->
-         stripped = String.replace(to_string(k), " ", "_")
-         updateDB("DELETE { " <>
-           "?metric :lastData ?z" <>
-         " } " <>
-           " WHERE { ?project rdf:name \"" <> project.name <> "\" . ?project :metric ?metric . ?metric rdf:name \"" <> to_string(k) <> "\" . ?metric :lastData ?z } ; " <>
-         "INSERT { " <>
-         " _:" <> stripped <> " rdf:type :data ; " <>
-            "xsd:integer " <> to_string(v) <> " ; " <>
-            "xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" . " <>
-         "?metric :data _:" <> stripped <> " . " <>
-         "?metric :lastData _:" <> stripped <>
-           " } WHERE { ?project rdf:name \"" <> project.name <> "\" . ?project :metric ?metric . ?metric rdf:name \"" <> to_string(k) <> "\" }") end)
-  end
-
-  def putUsers() do
-    Source.get(:users)
-    |> Enum.filter(fn(x) -> 
-      x.company == "Epimorphics Limited" end)
-    |> Enum.map(fn(user) -> updateDB("INSERT DATA { " <>
-      "_:tempUser rdf:type foaf:person ; " <>
-        Enum.reduce(user, "", fn({k, v}, all) ->
-          all <> " :" <> to_string(k) <> " \"" <> v <> "\" ; " end) <>
-    "} ") end)
+    {:ok, status.status_code}
   end
 
   def parseJSON(json) do
@@ -85,19 +34,143 @@ defmodule Fuseki do
     end)
   end
 
-  def putTrello(json) do
-    [ updateDB("INSERT DATA { " <>
-      "_:trello rdf:type :trello ; " <>
-      " rdf:resource <http://localhost:4000/json/" <> to_string(json.source) <> "/" <> json.shortLink <> "> ; " <>
-      ":shortlink \"" <> json.shortLink <> "\" ; " <>
-      Enum.reduce(json.metrics, "", fn({k, v}, all) ->
-        all <> " :metric [" <>
-          " rdf:type :metric ;" <>
-          " rdf:name \"" <> to_string(k) <>  "\" ;" <>
-        " ] ;" end) <>
-       "rdf:name \"" <> json.name <> "\" " <>
-      " }") ]
-    |> Kernel.++ [ putMetricData(json) ]
+  def putStandardForm(project) do
+    putProjectData(project)
+    |> Kernel.++ putAvatars(project)
+    |> Kernel.++ putMetrics(project)
+    |> Kernel.++ putMetricData(project)
+  end
+
+  def getProjectNames do
+    dbNames = queryDB("
+      SELECT ?name
+      WHERE {
+        ?project rdf:type ?type .
+        ?project rdf:name ?name
+        FILTER(?type IN (:cb, :git, :trello))
+      }")
+      |> parseJSON
+      |> Enum.map(fn(x) -> x["name"] end)
+  end
+
+  def putProjectData(project) do
+    current = getProjectNames
+    result = []
+    if !Enum.member?(current, project.name) do
+    shortlink = case Map.has_key?(project, :shortLink) do 
+      true -> " :shortlink \"" <> project.shortLink <> "\" ; "
+      false -> ""
+    end
+    url = case Map.has_key?(project, :shortLink) do
+      true -> project.shortLink
+      false -> project.name
+    end
+    update = updateDB("INSERT DATA { " <>
+      "_:project" <> " rdf:type :" <> Atom.to_string(project.source) <> " ;" <>
+      " rdf:name \"" <> project.name <> "\" ; " <>
+      shortlink <>
+      " :displayName \"" <> project.displayName <> "\"; " <>
+      " rdf:Description \"" <> to_string(project.description) <> "\"; " <>
+      " rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> url <> "> ; " <>
+        "}")
+    result = [update]
+    end
+    result
+  end
+
+  def getMetrics(project) do
+    queryDB("SELECT ?name
+    WHERE {
+        ?project rdf:name \"" <> project.name <> "\" .
+        ?project :metric ?metric .
+        ?metric rdf:name ?name .
+        }")
+        |> parseJSON
+        |> Enum.map(&Map.get(&1, "name"))
+  end
+
+  def putMetrics(project) do
+    current = getMetrics(project)
+    toAdd = Enum.filter(project.metrics, fn({k,v}) ->
+      !Enum.member?(current, to_string(k))
+    end)
+    result = updateDB(Enum.reduce(toAdd, "", fn({k, v}, all) ->
+      stripped = String.replace(to_string(k), " ", "_")
+                 |> String.replace("/", "")
+      all <> "INSERT { " <>
+             "_:" <> stripped <> " rdf:type :metric ; " <>
+             "rdf:name \"" <> to_string(k) <>  "\" . " <>
+             "?project :metric _:" <> stripped <> ". " <>
+             "} WHERE { ?project rdf:name \"" <> project.name <> "\" }; " end))
+    [result]
+  end
+
+  def getAvatars(project) do
+    queryDB("SELECT ?login
+    WHERE {
+        ?project rdf:name \"" <> project.name <> "\" .
+        ?a :worksOn ?project .
+        ?a :login ?login .
+        }")
+        |> parseJSON
+        |> Enum.map(&Map.get(&1, "login"))
+  end
+
+  def putAvatars(project) do
+    result = []
+    if Map.has_key?(project, :avatars) do
+    current = getAvatars(project)
+    toAdd = Enum.filter(project.avatars, fn(avatar) ->
+      !Enum.member?(current, avatar)
+    end)
+    output = updateDB(Enum.reduce(toAdd, "", fn(x, all) ->
+      all <> " INSERT {
+        ?person :worksOn ?project ;
+      } WHERE {
+        ?person :login \"" <> x <> "\" .
+        ?project rdf:name \"" <> project.name <> "\" .
+        };" end))
+    result = [output]
+    end
+    result
+  end
+
+  def putMetricData(project) do
+    result = updateDB(Enum.reduce(project.metrics, "", fn({k, v}, all) ->
+         stripped = String.replace(to_string(k), " ", "_")
+                 |> String.replace("/", "")
+         all <>
+         " DELETE { " <>
+           "?metric :lastData ?z" <>
+         " } " <>
+         " WHERE {" <>
+           " ?project rdf:name \"" <> project.name <> "\" . " <>
+           " ?project :metric ?metric . " <>
+           " ?metric rdf:name \"" <> to_string(k) <> "\" . " <>
+           " ?metric :lastData ?z } ; " <>
+         "INSERT { " <>
+         " _:" <> stripped <> " rdf:type :data ; " <>
+            "xsd:integer " <> to_string(v) <> " ; " <>
+            "xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" . " <>
+         "?metric :data _:" <> stripped <> " . " <>
+         "?metric :lastData _:" <> stripped <>
+         " } " <>
+         " WHERE { " <>
+         "   ?project rdf:name \"" <> project.name <> "\" . " <>
+         "   ?project :metric ?metric . " <> 
+           "   ?metric rdf:name \"" <> to_string(k) <> "\" " <>
+         "};" end))
+    [ result ]
+  end
+
+  def putUsers(users) do
+    users
+    |> Enum.filter(fn(x) -> x.company == "Epimorphics Limited" end)
+    |> Enum.map(fn(user) -> updateDB("INSERT DATA { " <>
+      "_:tempUser rdf:type foaf:person ; " <>
+        Enum.reduce(user, "", fn({k, v}, all) ->
+          all <> " :" <> to_string(k) <> " \"" <> v <> "\" ; " end) <>
+    "} ") end)
   end
 
 
@@ -144,6 +217,20 @@ defmodule Fuseki do
       list = Enum.filter(git, fn(result) -> Map.get(result, "projectName") == project.name end)
       |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
       Map.put(project, :git, list) end)
+  end
+
+  def putGit(projects) do
+    dbNames = queryDB("
+      SELECT ?name
+      WHERE {
+        ?project rdf:type :git .
+        ?project rdf:name ?name
+      }")
+      |> parseJSON
+      |> Enum.map(fn(x) -> x["name"] end)
+    # not added
+    Enum.filter(projects, fn(x) -> !Enum.member?(dbNames, x.name) end)
+    |> Enum.map(fn(x) -> putStandardForm(Github.toStandardForm(x)) end)
   end
 
   def getTrello(projects) do
