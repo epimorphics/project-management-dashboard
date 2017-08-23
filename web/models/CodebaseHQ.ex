@@ -55,6 +55,34 @@ defmodule CodebaseHQ do
     }
   end
 
+  def toStandardForm(project, users) do
+    project_emails = project.users
+
+    avatars = project.users
+    |> Enum.map(fn(email) ->
+      user = Enum.find(users, fn(user) ->
+        user.email_address == email
+      end)
+      Map.get(user, :login)
+    end)
+    |> Enum.filter(fn(x) -> x != nil end)
+
+    metrics = %{
+      :Issues => project.open_tickets,
+      :Bugs => project.bugs,
+      :Critical => Map.get(project.priorities, "Critical", 0)}
+
+    %{
+      :source => :cb,
+      :name => project.permalink,
+      :displayName => project.name,
+      :time => project.time,
+      :description => project.overview,
+      :avatars => avatars,
+      :metrics => metrics
+    }
+  end
+
   def getProjects do
     expected_fields = ~w(open_tickets name overview permalink status)
     HTTPoison.get!(@api <> @projectEndpoint, headers, auth).body

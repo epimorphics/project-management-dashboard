@@ -1,5 +1,16 @@
 defmodule Fuseki do
 
+  def prefixes do
+    "prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+     prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+     prefix owl: <http://www.w3.org/2002/07/owl#>
+     prefix : <http://example/>
+     prefix doap: <http://usefulinc.com/ns/doap#>
+     prefix foaf: <http://xmlns.com/foaf/0.1/>
+     prefix xsd: <http://www.w3.org/2001/XMLSchema#>
+     "
+  end
+
   def queryDB(sparqlquery) do
     HTTPoison.start
     HTTPoison.get!("http://localhost:3030/ds/query", [], params: [{"query", prefixes() <> sparqlquery}, {"output", "json"}]).body
@@ -21,11 +32,9 @@ defmodule Fuseki do
       " rdf:Description \"" <> to_string(project.description) <> "\"; " <>
       Enum.reduce(project.metrics, "", fn({k, v}, all) ->
         all <> " :metric [" <>
+          " rdf:type :metric ;" <>
           " rdf:name \"" <> to_string(k) <>  "\" ;" <>
-          " :data [ " <>
-            "xsd:integer " <> to_string(v) <> " ; " <>
-            "xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" " <>
-        " ] ] ;" end) <>
+        " ] ;" end) <>
       " rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> project.name <> "> ; " <>
     "}") ]
     |> Kernel.++ Enum.map(project.avatars, fn(x) ->
@@ -35,6 +44,23 @@ defmodule Fuseki do
         ?person :login \"" <> x <> "\" .
         ?project rdf:name \"" <> project.name <> "\" .
       }") end)
+    |> Kernel.++ putMetricData(project)
+  end
+
+  def putMetricData(project) do
+    Enum.reduce(project.metrics, "", fn({k, v}, all) ->
+         stripped = String.replace(to_string(k), " ", "_")
+         updateDB("DELETE { " <>
+           "?metric :lastData ?z" <>
+         " } " <>
+           " WHERE { ?project rdf:name \"" <> project.name <> "\" . ?project :metric ?metric . ?metric rdf:name \"" <> to_string(k) <> "\" . ?metric :lastData ?z } ; " <>
+         "INSERT { " <>
+         " _:" <> stripped <> " rdf:type :data ; " <>
+            "xsd:integer " <> to_string(v) <> " ; " <>
+            "xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" . " <>
+         "?metric :data _:" <> stripped <> " . " <>
+         "?metric :lastData _:" <> stripped <>
+           " } WHERE { ?project rdf:name \"" <> project.name <> "\" . ?project :metric ?metric . ?metric rdf:name \"" <> to_string(k) <> "\" }") end)
   end
 
   def putUsers() do
@@ -60,31 +86,20 @@ defmodule Fuseki do
   end
 
   def putTrello(json) do
-    updateDB("INSERT DATA { " <>
+    [ updateDB("INSERT DATA { " <>
       "_:trello rdf:type :trello ; " <>
-                       " rdf:resource <http://localhost:4000/json/" <> to_string(json.source) <> "/" <> json.shortLink <> "> ; " <>
+      " rdf:resource <http://localhost:4000/json/" <> to_string(json.source) <> "/" <> json.shortLink <> "> ; " <>
       ":shortlink \"" <> json.shortLink <> "\" ; " <>
       Enum.reduce(json.metrics, "", fn({k, v}, all) ->
         all <> " :metric [" <>
-          " rdf:name \"" <> k <>  "\" ;" <>
-          " :data [ " <>
-            "xsd:integer " <> to_string(v) <> " ; " <>
-            "xsd:dateTime \"" <> Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00") <> "\" " <>
-        " ] ] ;" end) <>
+          " rdf:type :metric ;" <>
+          " rdf:name \"" <> to_string(k) <>  "\" ;" <>
+        " ] ;" end) <>
        "rdf:name \"" <> json.name <> "\" " <>
-      " }")
+      " }") ]
+    |> Kernel.++ [ putMetricData(json) ]
   end
 
-  def prefixes do
-    "prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-     prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-     prefix owl: <http://www.w3.org/2002/07/owl#>
-     prefix : <http://example/>
-     prefix doap: <http://usefulinc.com/ns/doap#>
-     prefix foaf: <http://xmlns.com/foaf/0.1/>
-     prefix xsd: <http://www.w3.org/2001/XMLSchema#>
-     "
-  end
 
   def getProjects do
     queryDB("SELECT ?name WHERE { ?project rdf:type doap:project. ?project rdf:name ?name. }")
@@ -145,8 +160,7 @@ defmodule Fuseki do
     )
     |> parseJSON
     Enum.map(projects, fn(project) ->
-    
-    list = Enum.filter(trello, fn(result) -> Map.get(result, "projectName") == project.name end)
+      list = Enum.filter(trello, fn(result) -> Map.get(result, "projectName") == project.name end)
       |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
       Map.put(project, :trello, list) end)
   end
@@ -160,7 +174,7 @@ defmodule Fuseki do
         ?a rdf:name ?name .
         ?a :metric ?metric .
         ?metric rdf:name ?metricName .
-        ?metric :data ?x .
+        ?metric :lastData ?x .
         ?x xsd:integer ?value
       }")
       |> parseJSON
@@ -189,7 +203,7 @@ defmodule Fuseki do
         ?a rdf:name ?name .
         ?a :metric ?metric .
         ?metric rdf:name ?metricName .
-        ?metric :data ?x .
+        ?metric :lastData ?x .
         ?x xsd:integer ?value
       }")
     |> parseJSON
@@ -318,7 +332,7 @@ defmodule Fuseki do
         ?x rdf:type ?type .
         ?x :metric ?y.
         ?y rdf:name ?metricName.
-        ?y :data ?data.
+        ?y :lastData ?data.
         ?data xsd:integer ?value .
         FILTER(?type IN (:cb, :git))
       }
@@ -338,8 +352,8 @@ defmodule Fuseki do
     |> List.first
   end
 
-  def putTests do
-    Source.get(:jenkins)
+  def putTests(tests) do
+    tests
     |> Enum.map(fn(x) ->
       updateDB("
         DELETE { ?project :lastTest ?a }
