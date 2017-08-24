@@ -13,6 +13,14 @@ defmodule HelloPhoenix.ProjectController do
     json conn, Fuseki.getProjectJSON(project)
   end
 
+  def repoTimeSeries(conn, %{"repo" => repo}) do
+    json conn, Fuseki.getTimeseries(repo)
+  end
+
+  def trelloTimeSeries(conn, %{"shortlink" => shortlink}) do
+    json conn, Fuseki.getTimeseriesTrello(shortlink)
+  end
+
   #def userJson(conn, _params) do
   #  users = Source.get(:users)
   #  json conn, %{users: users}

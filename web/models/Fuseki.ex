@@ -35,10 +35,12 @@ defmodule Fuseki do
   end
 
   def putStandardForm(project) do
-    putProjectData(project)
+    out = putProjectData(project)
     |> Kernel.++ putAvatars(project)
     |> Kernel.++ putMetrics(project)
     |> Kernel.++ putMetricData(project)
+    if {:ok, 400} in Enum.uniq(out) do IO.puts(project.name) end
+    Enum.uniq(out)
   end
 
   def getProjectNames do
@@ -95,8 +97,7 @@ defmodule Fuseki do
       !Enum.member?(current, to_string(k))
     end)
     result = updateDB(Enum.reduce(toAdd, "", fn({k, v}, all) ->
-      stripped = String.replace(to_string(k), " ", "_")
-                 |> String.replace("/", "")
+      stripped = Regex.replace(~r/[^a-zA-Z0-9]/, to_string(k), "", global: true)
       all <> "INSERT { " <>
              "_:" <> stripped <> " rdf:type :metric ; " <>
              "rdf:name \"" <> to_string(k) <>  "\" . " <>
@@ -137,8 +138,7 @@ defmodule Fuseki do
 
   def putMetricData(project) do
     result = updateDB(Enum.reduce(project.metrics, "", fn({k, v}, all) ->
-         stripped = String.replace(to_string(k), " ", "_")
-                 |> String.replace("/", "")
+         stripped = Regex.replace(~r/[^a-zA-Z0-9]/, to_string(k), "", global: true)
          all <>
          " DELETE { " <>
            "?metric :lastData ?z" <>
@@ -265,7 +265,7 @@ defmodule Fuseki do
         ?x xsd:integer ?value
       }")
       |> parseJSON
-      |> Enum.reduce(%{}, fn(x, all) -> Map.put(all, x["metricName"], x["value"]) end)
+      |> Enum.reduce(%{}, fn(x, all) -> Map.put(all, x["metricName"], String.to_integer(x["value"])) end)
     details = queryDB("
       SELECT ?name ?url
       WHERE {
@@ -347,6 +347,7 @@ defmodule Fuseki do
           ?x :lastTest ?testId .
           ?testId xsd:boolean ?test .
         }
+        FILTER(?type IN (:cb, :git))
       }
     ")
     |> parseJSON
@@ -437,6 +438,44 @@ defmodule Fuseki do
       |> Map.put("avatars", avatars[x["name"]])
     end)
     |> List.first
+  end
+
+  def getTimeseries(name) do
+    queryDB("
+    SELECT ?name ?value ?date
+    WHERE {
+        ?a rdf:name \"" <> name <> "\".
+        ?a :metric ?metric .
+        ?metric rdf:name ?name .
+        ?metric :data ?data .
+        ?data xsd:integer ?value .
+        ?data xsd:dateTime ?date .
+        } ORDER BY ASC(?date)")
+        |> parseJSON
+        |> Enum.reduce(%{}, fn(x, all) ->
+          update = Map.get(all, x["name"], [])
+          |> Kernel.++ [%{x["date"] => x["value"]}]
+          Map.put(all, x["name"], update)
+        end)
+  end
+
+  def getTimeseriesTrello(shortlink) do
+    queryDB("
+    SELECT ?name ?value ?date
+    WHERE {
+        ?a :shortlink \"" <> shortlink <> "\".
+        ?a :metric ?metric .
+        ?metric rdf:name ?name .
+        ?metric :data ?data .
+        ?data xsd:integer ?value .
+        ?data xsd:dateTime ?date .
+        } ORDER BY ASC(?date)")
+        |> parseJSON
+        |> Enum.reduce(%{}, fn(x, all) ->
+          update = Map.get(all, x["name"], [])
+          |> Kernel.++ [%{x["date"] => x["value"]}]
+          Map.put(all, x["name"], update)
+        end)
   end
 
   def putTests(tests) do

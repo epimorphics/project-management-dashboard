@@ -21,6 +21,8 @@ defmodule HelloPhoenix.Router do
     get "/json/git/:project", ProjectController, :repoJson
     get "/json/cb/:project", ProjectController, :repoJson
     get "/json/project/:project", ProjectController, :repoJson
+    get "/json/timeseries/:repo", ProjectController, :repoTimeSeries
+    get "/json/trello/timeseries/:shortlink", ProjectController, :trelloTimeSeries
     get "/json/testproject", ProjectController, :testMultiSourceJSON
     get "/json/trello", TrelloController, :trelloJSON
     get "/json/trello/:name", TrelloController, :boardJSON
