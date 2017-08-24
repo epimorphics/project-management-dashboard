@@ -154,6 +154,10 @@ defmodule Fuseki do
     [ result ]
   end
 
+  def getUsers do
+
+  end
+
   def putUsers(users) do
     users
     |> Enum.filter(fn(x) -> x.company == "Epimorphics Limited" end)
@@ -243,9 +247,9 @@ defmodule Fuseki do
 
   def getTrelloJSON do
     metrics = queryDB("
-      SELECT ?shortlink ?metricName ?value
+      SELECT ?name ?metricName ?value
       WHERE {
-        ?a rdf:name ?shortlink .
+        ?a rdf:name ?name .
         ?a :metric ?metric .
         ?a rdf:type :trello .
         ?metric rdf:name ?metricName .
@@ -254,24 +258,25 @@ defmodule Fuseki do
       }")
     |> parseJSON
     |> Enum.reduce(%{}, fn(x, all) ->
-      update = Map.get(all, x["shortlink"], %{})
+      update = Map.get(all, x["name"], %{})
       |> Map.put(x["metricName"], String.to_integer(x["value"]))
 
-      Map.put(all, x["shortlink"], update)
+      Map.put(all, x["name"], update)
     end)
     details = queryDB("
-      SELECT ?shortlink ?name ?url
+      SELECT ?name ?displayName ?url
       WHERE {
-        ?a rdf:name ?shortlink .
-        ?a :displayName ?name .
+        ?a rdf:name ?name .
+        ?a rdf:type :trello .
+        ?a :displayName ?displayName.
         ?a rdf:resource ?url .
       }
       ")
     |> parseJSON
 
     Enum.map(details, fn(x) ->
-      Map.put(x, "metrics", metrics[x["shortlink"]])
-      |> Map.put("stats", metrics[x["shortlink"]])
+      Map.put(x, "metrics", metrics[x["name"]])
+      |> Map.put("stats", metrics[x["name"]])
       |> Map.put("source", "trello")
     end)
   end
@@ -295,11 +300,12 @@ defmodule Fuseki do
 
       Map.put(all, x["name"], avatars) end)
     details = queryDB("
-      select ?name ?displayName ?description ?source ?test
+      select ?name ?url ?displayName ?description ?source ?test
       where {
         ?x rdf:name ?name .
         ?x :displayName ?displayName .
         ?x rdf:type ?type .
+        ?x rdf:resource ?url .
         ?type rdf:label ?source .
         OPTIONAL {
           ?x rdf:Description ?description .
