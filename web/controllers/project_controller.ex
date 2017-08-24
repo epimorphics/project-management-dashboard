@@ -9,22 +9,13 @@ defmodule HelloPhoenix.ProjectController do
     json conn, %{projects: Fuseki.getProjectJSON}
   end
 
-  def repoJson(conn, %{"project" => project}) do
-    json conn, Fuseki.getProjectJSON(project)
+  def repoJSON(conn, %{"repo" => repo}) do
+    json conn, Fuseki.getProjectJSON(repo)
   end
 
   def repoTimeSeries(conn, %{"repo" => repo}) do
     json conn, Fuseki.getTimeseries(repo)
   end
-
-  def trelloTimeSeries(conn, %{"shortlink" => shortlink}) do
-    json conn, Fuseki.getTimeseriesTrello(shortlink)
-  end
-
-  #def userJson(conn, _params) do
-  #  users = Source.get(:users)
-  #  json conn, %{users: users}
-  #end
 
   def testMultiSourceJSON(conn, _params) do
     json conn, List.first Fuseki.getProjects
@@ -35,8 +26,7 @@ defmodule HelloPhoenix.ProjectController do
   end
 
   def update(conn, _params) do
-    Source.start_link
-    Source.addToGraph
+    Source.directAdd
     json conn, %{:done => "success"}
   end
 

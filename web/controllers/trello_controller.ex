@@ -6,9 +6,4 @@ defmodule HelloPhoenix.TrelloController do
     json conn, Fuseki.getTrelloJSON
   end
 
-  def boardJSON(conn, %{"name" => name}) do
-    IO.puts(name)
-    json conn, Fuseki.getTrelloJSON(name)
-  end
-
 end
