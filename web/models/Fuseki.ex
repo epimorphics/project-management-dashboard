@@ -56,24 +56,15 @@ defmodule Fuseki do
   end
 
   def putProjectData(project) do
-    current = getProjectNames
     result = []
+    current = getProjectNames
     if !Enum.member?(current, project.name) do
-    shortlink = case Map.has_key?(project, :shortLink) do 
-      true -> " :shortlink \"" <> project.shortLink <> "\" ; "
-      false -> ""
-    end
-    url = case Map.has_key?(project, :shortLink) do
-      true -> project.shortLink
-      false -> project.name
-    end
     update = updateDB("INSERT DATA { " <>
       "_:project" <> " rdf:type :" <> Atom.to_string(project.source) <> " ;" <>
       " rdf:name \"" <> project.name <> "\" ; " <>
-      shortlink <>
       " :displayName \"" <> project.displayName <> "\"; " <>
       " rdf:Description \"" <> to_string(project.description) <> "\"; " <>
-      " rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> url <> "> ; " <>
+      " rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> project.name <> "> ; " <>
         "}")
     result = [update]
     end
@@ -235,21 +226,19 @@ defmodule Fuseki do
 
   def getTrello(projects) do
     trello = queryDB(
-      "SELECT ?projectName ?name ?displayName ?url
-      WHERE {
-           ?project rdf:type doap:project .
-           ?project rdf:name ?projectName .
-           ?project :trello/rdf:rest*/rdf:first ?displayName .
-           ?itemid rdf:name ?displayName .
-           ?itemid :shortlink ?name .
-           ?itemid rdf:resource ?url .
-      }"
-    )
+      "SELECT ?projectName ?name ?url ?displayName
+       WHERE {
+       ?project rdf:type doap:project .
+       ?project rdf:name ?projectName .
+       ?project :trello/rdf:rest*/rdf:first ?name .
+       ?a rdf:name ?name .
+       ?a rdf:resource ?url .
+       ?a :displayName ?displayName . }")
     |> parseJSON
     Enum.map(projects, fn(project) ->
-      list = Enum.filter(trello, fn(result) -> Map.get(result, "projectName") == project.name end)
-      |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
-      Map.put(project, :trello, list) end)
+    list = Enum.filter(trello, fn(result) -> Map.get(result, "projectName") == project.name end)
+    |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
+    Map.put(project, :trello, list) end)
   end
 
   def getTrelloJSON(shortlink) do
@@ -257,8 +246,7 @@ defmodule Fuseki do
     metrics = queryDB("
       SELECT ?metricName ?value
       WHERE {
-        ?a :shortlink \"" <> shortlink <> "\" .
-        ?a rdf:name ?name .
+        ?a rdf:name \"" <> shortlink <> "\" .
         ?a :metric ?metric .
         ?metric rdf:name ?metricName .
         ?metric :lastData ?x .
@@ -269,8 +257,8 @@ defmodule Fuseki do
     details = queryDB("
       SELECT ?name ?url
       WHERE {
-        ?a :shortlink \"" <> shortlink <> "\" .
-        ?a rdf:name ?name .
+        ?a rdf:name \"" <> shortlink <> "\" .
+        ?a :displayName ?name .
         ?a rdf:resource ?url .
       }
       ")
@@ -286,9 +274,9 @@ defmodule Fuseki do
     metrics = queryDB("
       SELECT ?shortlink ?metricName ?value
       WHERE {
-        ?a :shortlink ?shortlink .
-        ?a rdf:name ?name .
+        ?a rdf:name ?shortlink .
         ?a :metric ?metric .
+        ?a rdf:type :trello .
         ?metric rdf:name ?metricName .
         ?metric :lastData ?x .
         ?x xsd:integer ?value
@@ -303,8 +291,8 @@ defmodule Fuseki do
     details = queryDB("
       SELECT ?shortlink ?name ?url
       WHERE {
-        ?a :shortlink ?shortlink .
-        ?a rdf:name ?name .
+        ?a rdf:name ?shortlink .
+        ?a :displayName ?name .
         ?a rdf:resource ?url .
       }
       ")
@@ -422,7 +410,7 @@ defmodule Fuseki do
         ?y rdf:name ?metricName.
         ?y :lastData ?data.
         ?data xsd:integer ?value .
-        FILTER(?type IN (:cb, :git))
+        FILTER(?type IN (:cb, :git, :trello))
       }
     ")
     |> parseJSON
@@ -445,25 +433,6 @@ defmodule Fuseki do
     SELECT ?name ?value ?date
     WHERE {
         ?a rdf:name \"" <> name <> "\".
-        ?a :metric ?metric .
-        ?metric rdf:name ?name .
-        ?metric :data ?data .
-        ?data xsd:integer ?value .
-        ?data xsd:dateTime ?date .
-        } ORDER BY ASC(?date)")
-        |> parseJSON
-        |> Enum.reduce(%{}, fn(x, all) ->
-          update = Map.get(all, x["name"], [])
-          |> Kernel.++ [%{x["date"] => x["value"]}]
-          Map.put(all, x["name"], update)
-        end)
-  end
-
-  def getTimeseriesTrello(shortlink) do
-    queryDB("
-    SELECT ?name ?value ?date
-    WHERE {
-        ?a :shortlink \"" <> shortlink <> "\".
         ?a :metric ?metric .
         ?metric rdf:name ?name .
         ?metric :data ?data .

@@ -31,7 +31,7 @@
   rdf:resource <http://localhost:8080/#/project?name=testproject> ;
 :git ("epi-dash") ;
 :cb ("fsa-projects" "data-platform") ;
-:trello ("FSA Alerts") .
+:trello ("8yWJfZK4") .
 
 _:ian rdf:type foaf:person ;
       :email "ian.dickinson@epimorphics.com";
