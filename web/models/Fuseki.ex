@@ -180,6 +180,32 @@ defmodule Fuseki do
     |> getTrello
   end
 
+  def putProject(project) do
+    updateDB("DELETE {?project ?a ?b} " <>
+    "WHERE {?project rdf:type :project } ; " <>
+    "INSERT { "<>
+    "_:project rdf:type :project . " <>
+    "_:project rdf:name \"" <> project["name"] <> "\" . " <>
+    " } WHERE {} ; " <>
+    Enum.reduce(project["repos"], "", fn(x, all) ->
+    all <> "INSERT { " <>
+    " ?project :repo ?repo ;" <>
+    "} WHERE { " <>
+    " ?project rdf:type :project . " <>
+    " ?project rdf:name \"" <>  project["name"]  <> "\" . " <>
+    " ?repo rdf:resource <" <> x["url"] <> "> ." <>
+    " } ; "
+    end) <>
+    Enum.reduce(project["trello"], "", fn(x, all) ->
+    all <> "INSERT { " <>
+    " ?project :repo ?repo ;" <>
+    "} WHERE { " <>
+    " ?project rdf:type :project . " <>
+    " ?project rdf:name \"" <> project["name"] <> "\" . " <>
+    " ?repo rdf:resource <" <> x["url"] <> "> ." <>
+    " } ; " end))
+  end
+
   def getCB(projects) do
     cb = queryDB(
       "SELECT ?projectName ?name ?url ?displayName

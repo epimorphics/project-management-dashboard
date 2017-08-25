@@ -5,7 +5,7 @@ defmodule HelloPhoenix.Router do
     plug :accepts, ["html"]
     plug :fetch_session
     plug :fetch_flash
-    plug :protect_from_forgery
+#    plug :protect_from_forgery
     plug :put_secure_browser_headers
   end
 
@@ -31,6 +31,7 @@ defmodule HelloPhoenix.Router do
     get "/json/projects", ProjectController, :testProjectJSON
 
     get "/update", ProjectController, :update
+	post "/test", ProjectController, :test
     resources "/users", UserController
   end
 

@@ -30,4 +30,8 @@ defmodule HelloPhoenix.ProjectController do
     json conn, %{:done => "success"}
   end
 
+  def test(conn, _params) do
+    json(conn, %{body: _params})
+  end
+
 end
