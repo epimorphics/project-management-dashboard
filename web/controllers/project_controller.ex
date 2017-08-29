@@ -21,6 +21,11 @@ defmodule HelloPhoenix.ProjectController do
     json conn, Fuseki.getProject(URI.decode(project))
   end
 
+  def deleteProject(conn, _params) do
+    Fuseki.deleteProject(_params)
+    json(conn, %{:done => "success"})
+  end
+
   def testMultiSourceJSON(conn, _params) do
     json conn, List.first Fuseki.getProjects
   end

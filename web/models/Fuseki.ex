@@ -182,7 +182,7 @@ defmodule Fuseki do
   def getProject(name) do
     queryDB("SELECT ?url ?transform WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name \"" <> name <> "\" . }")
     |> parseJSON
-    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => name, :transform => Base.decode64!(x["transform"]), :url => x["url"], :repos => [], :trello => []}] end)
+    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => name, :source => :epi, :transform => Base.decode64!(x["transform"]), :url => x["url"], :repos => [], :trello => []}] end)
     |> getRepos
     |> getTrello
     |> List.first
@@ -208,9 +208,16 @@ defmodule Fuseki do
   def newProjects do
     queryDB("SELECT ?name ?url ?transform WHERE { ?project rdf:type :project. ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name ?name. }")
     |> parseJSON
-    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => x["name"], :transform => Base.decode64!(x["transform"]), :url => x["url"], :repos => [], :trello => []}] end)
+    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => x["name"], :source => :epi, :transform => Base.decode64!(x["transform"]), :url => x["url"], :repos => [], :trello => []}] end)
     |> getRepos
     |> getTrello
+  end
+
+  def deleteProject(project) do
+    updateDB("DELETE {?project ?a ?b} " <>
+      "WHERE {?project rdf:type :project .
+      ?project rdf:name \"" <> project["name"] <> "\" .
+      ?project ?a ?b .} ")
   end
 
   def putProject(project) do
@@ -222,6 +229,7 @@ defmodule Fuseki do
     "_:project rdf:type :project . " <>
     "_:project rdf:name \"" <> project["name"] <> "\" . " <>
     "_:project :transform \"" <> Base.encode64(project["transform"]) <> "\" . " <>
+    "_:project :source :epi . " <>
     "_:project rdf:resource <http://localhost:8080/#/project?name=" <> URI.encode(project["name"]) <> "> . " <>
     " } WHERE {} ; " <>
     Enum.reduce(project["repos"], "", fn(x, all) ->
@@ -509,5 +517,4 @@ defmodule Fuseki do
        ") end)
   end
 end
-
 

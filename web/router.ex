@@ -31,6 +31,7 @@ defmodule HelloPhoenix.Router do
     get "/json/projects/:project", ProjectController, :testMultiSourceJSON
     get "/json/projects", ProjectController, :testProjectJSON
 
+    post "/delete/project/", ProjectController, :deleteProject
     get "/update", ProjectController, :update
     post "/test", ProjectController, :test
     resources "/users", UserController
