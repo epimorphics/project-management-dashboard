@@ -35,7 +35,7 @@ defmodule Fuseki do
   end
 
   def putStandardForm(project) do
-    out = putProjectData(project)
+    out = putRepoData(project)
     |> Kernel.++ putAvatars(project)
     |> Kernel.++ putMetrics(project)
     |> Kernel.++ putMetricData(project)
@@ -43,7 +43,7 @@ defmodule Fuseki do
     Enum.uniq(out)
   end
 
-  def getProjectNames do
+  def getRepoNames do
     dbNames = queryDB("
       SELECT ?name
       WHERE {
@@ -55,9 +55,9 @@ defmodule Fuseki do
       |> Enum.map(fn(x) -> x["name"] end)
   end
 
-  def putProjectData(project) do
+  def putRepoData(project) do
     result = []
-    current = getProjectNames
+    current = getRepoNames
     if !Enum.member?(current, project.name) do
     update = updateDB("INSERT DATA { " <>
       "_:project" <> " rdf:type :" <> Atom.to_string(project.source) <> " ;" <>
@@ -170,22 +170,56 @@ defmodule Fuseki do
 
 
   def getProjects do
-    queryDB("SELECT ?name WHERE { ?project rdf:type doap:project. ?project rdf:name ?name. }")
+    queryDB("SELECT ?name ?url WHERE { ?project rdf:type doap:project. ?project rdf:resource ?url . ?project rdf:name ?name. }")
     |> parseJSON
-    |> Enum.reduce([], fn(y, all) -> all ++ [y["name"]] end)
-                   |> Enum.uniq
-    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => x, :cb => [], :git => [], :trello => []}] end)
+    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => x["name"], :url => x["url"], :cb => [], :git => [], :trello => []}] end)
+       |> Enum.uniq
     |> getCB
     |> getGit
     |> getTrello
   end
 
+  def getProject(name) do
+    [%{:name => name, :repos => [], :trello => []}]
+    |> getRepos
+    |> getTrello
+    |> List.first
+  end
+
+  def getRepos(projects) do
+    git = queryDB(
+      "SELECT ?projectName ?name ?url ?displayName
+       WHERE {
+       ?project rdf:type :project .
+       ?project rdf:name ?projectName .
+       ?project :repo ?repo .
+       ?repo rdf:name ?name .
+       ?repo rdf:resource ?url .
+       ?repo :displayName ?displayName . }")
+    |> parseJSON
+     Enum.map(projects, fn(project) ->
+      list = Enum.filter(git, fn(result) -> Map.get(result, "projectName") == project.name end)
+      |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
+      Map.put(project, :repos , list) end)
+  end
+
+  def newProjects do
+    queryDB("SELECT ?name ?url WHERE { ?project rdf:type :project. ?project rdf:resource ?url . ?project rdf:name ?name. }")
+    |> parseJSON
+    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => x["name"], :url => x["url"], :repos => [], :trello => []}] end)
+    |> getRepos
+    |> getTrello
+  end
+
   def putProject(project) do
     updateDB("DELETE {?project ?a ?b} " <>
-    "WHERE {?project rdf:type :project } ; " <>
+      "WHERE {?project rdf:type :project .
+      ?project rdf:name \"" <> project["name"] <> "\" .
+      ?project ?a ?b .} ; " <>
     "INSERT { "<>
     "_:project rdf:type :project . " <>
     "_:project rdf:name \"" <> project["name"] <> "\" . " <>
+    "_:project rdf:resource <http://localhost:8080/#/project?name=" <> URI.encode(project["name"]) <> "> . " <>
     " } WHERE {} ; " <>
     Enum.reduce(project["repos"], "", fn(x, all) ->
     all <> "INSERT { " <>
@@ -198,7 +232,7 @@ defmodule Fuseki do
     end) <>
     Enum.reduce(project["trello"], "", fn(x, all) ->
     all <> "INSERT { " <>
-    " ?project :repo ?repo ;" <>
+    " ?project :trello ?repo ;" <>
     "} WHERE { " <>
     " ?project rdf:type :project . " <>
     " ?project rdf:name \"" <> project["name"] <> "\" . " <>
@@ -258,12 +292,12 @@ defmodule Fuseki do
     trello = queryDB(
       "SELECT ?projectName ?name ?url ?displayName
        WHERE {
-       ?project rdf:type doap:project .
+       ?project rdf:type :project .
        ?project rdf:name ?projectName .
-       ?project :trello/rdf:rest*/rdf:first ?name .
-       ?a rdf:name ?name .
-       ?a rdf:resource ?url .
-       ?a :displayName ?displayName . }")
+       ?project :trello ?trello .
+       ?trello rdf:name ?name .
+       ?trello rdf:resource ?url .
+       ?trello :displayName ?displayName . }")
     |> parseJSON
     Enum.map(projects, fn(project) ->
     list = Enum.filter(trello, fn(result) -> Map.get(result, "projectName") == project.name end)
