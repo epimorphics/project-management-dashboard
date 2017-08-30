@@ -17,10 +17,10 @@ defmodule Users do
   def createUsers(gitrepo, cbrepo) do
     gitusers = gitUsers(gitrepo)
     cbusers = cbUsers(cbrepo)
-    mapping = %{"ian.dickinson@epimorphics.com" => "ijdickinson",  "dave@epimorphics.com" => "der", "brian@epimorphics.com" => "bwmcbride", "chris.dollin@epimorphics.com" => "ehedgehog", "mike.waterworth@epimorphics.com" => "paperclipmonkey", "alex.coley@epimorphics.com" => "alexrcoley", "paul@epimorphics.com" => "pshab", "skw@epimorphics.com" => "skwlilac", "max.prettyjohns@epimorphics.com" => "heshoots", "mihajlo.milosavljevic@epimorphics.com" => "mika018"}
-    cb = Enum.map(cbusers, fn(x) ->
-      gitmap = Enum.find(gitusers, %{}, fn(user) ->
-        user.login == mapping[x.email_address]
+    mapping = %{"ijdickinson" => "ian.dickinson@epimorphics.com", "der" => "dave@epimorphics.com", "bwmcbride" => "brian@epimorphics.com",  "ehedgehog" => "chris.dollin@epimorphics.com", "paperclipmonkey" => "mike.waterworth@epimorphics.com", "alexrcoley" => "alex.coley@epimorphics.com", "pshab" => "paul@epimorphics.com", "skwlilac" => "skw@epimorphics.com", "heshoots" => "max.prettyjohns@epimorphics.com", "mika018" => "mihajlo.milosavljevic@epimorphics.com"}
+    cb = Enum.map(gitusers, fn(x) ->
+      gitmap = Enum.find(cbusers, %{}, fn(user) ->
+        user.email_address == mapping[x.login]
       end)
       Map.merge(gitmap, x)
     end)

@@ -155,17 +155,25 @@ defmodule Fuseki do
   end
 
   def getUsers do
-
+    queryDB("SELECT DISTINCT ?login
+     WHERE {
+      ?person rdf:type foaf:person .
+      ?person :login ?login .
+      }")
+    |> parseJSON
+    |> Enum.map(fn(user) -> user["login"] end)
   end
 
   def putUsers(users) do
+    current = getUsers
     users
-    |> Enum.filter(fn(x) -> x.company == "Epimorphics Limited" end)
+    |> Enum.filter(fn(x) -> !Enum.member?(current, x.login) end)
+    #|> Enum.filter(fn(x) -> x.company == "Epimorphics Limited" end)
     |> Enum.map(fn(user) -> updateDB("INSERT DATA { " <>
-      "_:tempUser rdf:type foaf:person ; " <>
+     "_:tempUser rdf:type foaf:person ; " <>
         Enum.reduce(user, "", fn({k, v}, all) ->
-          all <> " :" <> to_string(k) <> " \"" <> v <> "\" ; " end) <>
-    "} ") end)
+         all <> " :" <> to_string(k) <> " \"" <> v <> "\" ; " end) <>
+     "} ") end)
   end
 
 
@@ -358,10 +366,7 @@ defmodule Fuseki do
       where {
         ?project rdf:name ?name .
         ?person :worksOn ?project .
-        ?person :first_name ?first .
-        ?person :last_name ?last .
         ?person :avatar_url ?avatar .
-        ?person :login ?login
       }
     ")
     |> parseJSON
@@ -420,10 +425,7 @@ defmodule Fuseki do
         ?project rdf:name \"" <> name  <> "\" .
         ?project rdf:name ?name .
         ?person :worksOn ?project .
-        ?person :first_name ?first .
-        ?person :last_name ?last .
         ?person :avatar_url ?avatar .
-        ?person :login ?login
       }
     ")
     |> parseJSON

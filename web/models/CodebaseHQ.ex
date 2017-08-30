@@ -28,6 +28,7 @@ defmodule CodebaseHQ do
 
   def toStandardForm(project) do
     users = Source.get(:users)
+            |> Enum.filter(fn(user) -> Map.has_key?(user, :email_address) end)
     project_emails = project.users
 
     avatars = project.users
@@ -56,14 +57,15 @@ defmodule CodebaseHQ do
   end
 
   def toStandardForm(project, users) do
+    users = Enum.filter(users, fn(user) -> Map.has_key?(user, :email_address) end)
     project_emails = project.users
 
     avatars = project.users
     |> Enum.map(fn(email) ->
-      user = Enum.find(users, fn(user) ->
-        user.email_address == email
+      user = Enum.find(users, %{}, fn(user) ->
+        Map.get(user, :email_address, "") == email
       end)
-      Map.get(user, :login)
+      Map.get(user, :login, nil)
     end)
     |> Enum.filter(fn(x) -> x != nil end)
 
