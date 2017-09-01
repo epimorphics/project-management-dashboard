@@ -23,17 +23,15 @@ defmodule Slack do
   end
 
   def difference(name) do
-    series = Fuseki.getTimeseries(name)
-    Enum.map(Map.keys(series), fn(key) ->
-      map = Enum.reduce(series[key], %{}, fn(x, all) ->
-        key = List.first Map.keys(x)
-        Map.put(all, key, x[key])
-      end)
-      diff = Map.values(map)
-      |> Enum.take(-2)
-      |> Enum.map(fn(x) -> String.to_integer(x) end)
-      |> Enum.reduce(fn(x, all) -> x - all end)
-      {key, diff}
+    series = Project.getTimeseries(name)
+    Enum.map(Map.keys(series), fn(metricName) ->
+      {metricName , Enum.take(series[metricName], -2)}
+    end)
+    |> Enum.reduce(%{}, fn({k, v}, all) ->
+      {date, first} = Enum.at(v, 0)
+      {date, second} = Enum.at(v, 1)
+      sum = second - first
+      Map.put(all, k, sum)
     end)
     |> Enum.map(fn({k, v}) ->
       case v do

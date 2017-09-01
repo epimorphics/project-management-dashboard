@@ -1,10 +1,5 @@
 defmodule Project do
 
-  def minuteGranularity(date) do
-    Timex.parse!(date)
-    |> 
-  end
-
   def getTimeseries(name) do
     Fuseki.queryDB("
       SELECT ?name (SUM(?val) as ?value) ?date
@@ -17,7 +12,7 @@ defmodule Project do
         ?metric :data  ?data .
         ?data xsd:integer ?val .
         ?data xsd:dateTime ?date .
-        FILTER (?type IN (:cb, :git, :trello))
+        FILTER (?type IN (:repo, :trello))
       } GROUP BY ?name ?metricName ?date
         ORDER BY ?date
     ")
@@ -27,6 +22,13 @@ defmodule Project do
         |> Map.put(row["date"], String.to_integer(row["value"]))
         Map.put(series, row["name"], updateMetric)
       end)
+    |> congregateDates
+  end
+
+  def getTransformedSeries(name) do
+    transform = getTransform(name)
+    timeseries = getTimeseries(name)
+    transformTimeseries(timeseries, transform)
   end
 
   def getTransform(name) do
@@ -46,39 +48,53 @@ defmodule Project do
 
   def hide(timeseries, transform) do
     Enum.reduce(Map.keys(timeseries), %{}, fn(key, all) ->
-      case Enum.member?(transform, key) do
+      case Enum.member?(transform["hide"], key) do
         true -> all
         false -> Map.put(all, key, timeseries[key])
       end
     end)
   end
 
+  def show(timeseries, transform) do
+    case Map.get(transform, "show", []) do
+     [] -> timeseries
+     _ ->  Enum.reduce(Map.keys(timeseries), %{}, fn(key, all) ->
+      case Enum.member?(Map.get(transform, "show", []), key) do
+        false -> all
+        true -> Map.put(all, key, timeseries[key])
+      end
+    end)
+	end
+  end
+
   def newmapmerge(a, b, fun) do
     Enum.reduce(Map.keys(a), b, fn(key, newb) ->
-      Map.put(newb, key, fun.(Map.get(a, key, 0), Map.get(newb, key, 0)))
+      newkey = Timex.parse!(key, "{ISO:Extended}")
+      |> Timex.format!("{YYYY}-{M}-{D}T{h24}:{m}:00+00:00")
+      Map.put(newb, newkey, fun.(Map.get(a, key, 0), Map.get(newb, newkey, 0)))
     end)
   end
 
-  def similarDates(map) do
-    Map.keys(map)
-    |> Enum.reduce(%{}
+  def congregateDates(timeseries) do
+    Enum.reduce(Map.keys(timeseries), %{}, fn(key, all) -> Map.put(all, key, newmapmerge(timeseries[key], %{}, fn(a, b) -> a end)) end)
   end
 
   # Timeseries, [Merge] -> Timeseries
   def merge(timeseries, transform) do
     needed= Enum.map(transform["fields"], fn(x) -> timeseries[x] end)
             |> Enum.reduce(%{}, &newmapmerge(&1, &2, fn(a,b) -> a + b end))
-    %{transform["name"] => needed}
   end
 
-  def multimerge(timeseries, merges) do
-    Enum.map(merges, fn(transform) -> merge(timeseries, transform) end)
+  def multimerge(timeseries, transform) do
+    transforms = Enum.map(Map.get(transform, "merge", []), fn(merges) -> {merges["name"], merge(timeseries, merges)} end)
+    Enum.reduce(transforms, timeseries, fn({metricName, map}, out) -> Map.put(out, metricName, map) end)
   end
 
   def transformTimeseries(timeseries, transform) do
     timeseries
-    |> multimerge Map.get(transform, "merge", [])
-    #|> hide Map.get(transform, "hide", [])
+    |> multimerge(transform)
+    |> hide(transform)
+    |> show(transform)
   end
 
 end
