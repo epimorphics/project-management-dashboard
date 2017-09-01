@@ -71,6 +71,19 @@ defmodule Fuseki do
     result
   end
 
+  def getWebhook(project) do
+    queryDB("
+    SELECT ?webhook
+    WHERE {
+      ?project rdf:type :project .
+      ?project rdf:name \"" <> project.name <> "\" .
+      ?project :webhook ?webhook .
+    }
+    ")
+    |> parseJSON
+    |> Enum.map(fn(x) -> x["webhook"] end)
+  end
+
   def getMetrics(project) do
     queryDB("SELECT ?name
     WHERE {
@@ -188,9 +201,9 @@ defmodule Fuseki do
   end
 
   def getProject(name) do
-    queryDB("SELECT ?url ?transform WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name \"" <> name <> "\" . }")
+    queryDB("SELECT ?url ?transform ?webhook WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name \"" <> name <> "\" . OPTIONAL { ?project :webhook ?webhook}}")
     |> parseJSON
-    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => name, :source => :epi, :transform => Base.decode64!(x["transform"]), :url => x["url"], :repos => [], :trello => []}] end)
+    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => name, :source => :epi, :transform => Base.decode64!(x["transform"]), :url => x["url"], :webhook => x["webhook"], :repos => [], :trello => []}] end)
     |> getRepos
     |> getTrello
     |> List.first
@@ -256,7 +269,14 @@ defmodule Fuseki do
     " ?project rdf:type :project . " <>
     " ?project rdf:name \"" <> project["name"] <> "\" . " <>
     " ?repo rdf:resource <" <> x["url"] <> "> ." <>
-    " } ; " end))
+    " } ; " end) <>
+    if Map.has_key?(project, "webhook") do
+    "INSERT { " <>
+    "?project :webhook <" <> project["webhook"] <> "> . " <>
+    "} WHERE { ?project rdf:name \"" <> project["name"] <> "\" }; "
+	else
+	  ""
+    end)
   end
 
   def getCB(projects) do

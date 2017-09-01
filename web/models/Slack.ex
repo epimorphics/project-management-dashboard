@@ -1,14 +1,22 @@
 defmodule Slack do
-  @webhook "https://hooks.slack.com/services/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"
 
-  def sendToHook(name) do
+  def sendToHook(name, hook) do
     HTTPoison.start
-    {:ok, status} = HTTPoison.post(@webhook, Poison.encode!(testMessage(name)), [{"Content-Type", "application/json"}])
+    {len, message} = testMessage(name)
+	if (len > 0) do
+		{:ok, status} = HTTPoison.post(hook, Poison.encode!(message), [{"Content-Type", "application/json"}])
+	end
   end
 
   def testMessage(project) do
-    %{ "text" => "",
-      "attachments" => Enum.filter(difference(project), fn(x) -> x != nil end)}
+   attachments = Enum.filter(difference(project), fn(x) -> x != nil end)
+   { length(attachments),  %{"text" => "Update for " <> project, "attachments" => attachments}}
+  end
+
+  def getHooks do
+   Fuseki.queryDB("SELECT ?name ?webhook WHERE { ?project rdf:type :project . ?project rdf:name ?name . ?project :webhook ?webhook .}")
+   |> Fuseki.parseJSON
+   |> Enum.map(fn(project) -> sendToHook(project["name"], project["webhook"]) end)
   end
 
   def send(message) do
