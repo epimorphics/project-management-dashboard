@@ -40,3 +40,5 @@ config :hello_phoenix, HelloPhoenix.Repo,
   database: "hello_phoenix_dev",
   hostname: "localhost",
   pool_size: 10
+
+config :hello_phoenix, :slack_api, Slack.Externals

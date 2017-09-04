@@ -58,4 +58,6 @@ config :logger, level: :info
 
 # Finally import the config/prod.secret.exs
 # which should be versioned separately.
+config :hello_phoenix, :slack_api, Slack.Externals
+
 import_config "prod.secret.exs"

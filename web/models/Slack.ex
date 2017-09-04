@@ -1,26 +1,21 @@
 defmodule Slack do
+  @slack_api Application.get_env(:hello_phoenix, :slack_api)
 
-  def sendToHook(name, hook) do
-    HTTPoison.start
-    {len, message} = testMessage(name)
-	if (len > 0) do
-		{:ok, status} = HTTPoison.post(hook, Poison.encode!(message), [{"Content-Type", "application/json"}])
-	end
+  def sendToAPI(name, hook) do
+    {len, message} = projectMessage(name)
+  if (len > 0) do
+    @slack_api.sendToHook(message, hook)
+  end
   end
 
-  def testMessage(project) do
+  def update do
+   @slack_api.getHooks
+   |> Enum.map(fn(project) -> sendToAPI(project["name"], project["webhook"]) end)
+  end
+
+  def projectMessage(project) do
    attachments = Enum.filter(difference(project), fn(x) -> x != nil end)
    { length(attachments),  %{"text" => "Update for " <> project, "attachments" => attachments}}
-  end
-
-  def getHooks do
-   Fuseki.queryDB("SELECT ?name ?webhook WHERE { ?project rdf:type :project . ?project rdf:name ?name . ?project :webhook ?webhook .}")
-   |> Fuseki.parseJSON
-   |> Enum.map(fn(project) -> sendToHook(project["name"], project["webhook"]) end)
-  end
-
-  def send(message) do
-    {:ok, status} = HTTPoison.post(@webhook, message, [{"Content-Type", "application/json"}])
   end
 
   def upOrDown(val) do
@@ -31,7 +26,7 @@ defmodule Slack do
   end
 
   def difference(name) do
-    series = Project.getTimeseries(name)
+    series = @slack_api.getTimeseries(name)
     Enum.map(Map.keys(series), fn(metricName) ->
       {metricName , Enum.take(series[metricName], -2)}
     end)

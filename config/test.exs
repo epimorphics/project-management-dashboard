@@ -17,3 +17,5 @@ config :hello_phoenix, HelloPhoenix.Repo,
   database: "hello_phoenix_test",
   hostname: "localhost",
   pool: Ecto.Adapters.SQL.Sandbox
+
+config :hello_phoenix, :slack_api, Slack.Test
