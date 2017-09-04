@@ -19,3 +19,5 @@ config :hello_phoenix, HelloPhoenix.Repo,
   pool: Ecto.Adapters.SQL.Sandbox
 
 config :hello_phoenix, :slack_api, Slack.Test
+config :hello_phoenix, :github_api, Github.Test
+config :hello_phoenix, :jenkins_api, Jenkins.Test

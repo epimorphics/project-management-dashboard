@@ -42,3 +42,5 @@ config :hello_phoenix, HelloPhoenix.Repo,
   pool_size: 10
 
 config :hello_phoenix, :slack_api, Slack.Externals
+config :hello_phoenix, :github_api, Github.API
+config :hello_phoenix, :jenkins_api, Jenkins.API

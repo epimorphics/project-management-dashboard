@@ -1,4 +1,19 @@
+defmodule Jenkins.API do
+  def getStatus(headers, auth) do
+    HTTPoison.start
+    HTTPoison.get!("https://epi-jenkins.epimorphics.net/api/json?depth=2", headers, auth).body
+  end
+end
+
+defmodule Jenkins.Test do
+  def getStatus(headers, auth) do
+    File.read!("./jenkinsresp")
+  end
+end
+
 defmodule Jenkins do
+  @jenkins_api Application.get_env(:hello_phoenix, :jenkins_api)
+
   def auth do
     user = Application.fetch_env!(:hello_phoenix, :jenkins_user)
     pass = Application.fetch_env!(:hello_phoenix, :jenkins_pass)
@@ -12,8 +27,7 @@ defmodule Jenkins do
 
   def getStatus do
     expected_fields = ~w(name remote result)
-    HTTPoison.start
-    HTTPoison.get!("https://epi-jenkins.epimorphics.net/api/json?depth=2", headers, auth).body
+    @jenkins_api.getStatus(headers, auth)
     |> Poison.decode!
     |> Map.get("jobs")
     |> Enum.map(fn(x) -> 
@@ -21,7 +35,7 @@ defmodule Jenkins do
       |> Map.get("actions")
       |> Enum.find(fn(x) -> Map.get(x, "_class") == "hudson.plugins.git.util.BuildData" end)
       |> Map.get("remoteUrls")
-      |> List.first
+        |> List.first
       |> remoteStringToSource
 
       success = Map.get(x, "lastBuild")
@@ -30,7 +44,7 @@ defmodule Jenkins do
 
       Map.put(remote, :success, success)
       |> Map.put(:ciname, Map.get(x, "name"))
-    end)
+      end)
   end
 
   def remoteStringToSource(remote) do
@@ -38,9 +52,9 @@ defmodule Jenkins do
     source = Enum.at(vals, 1)
     link = Enum.at(vals, 4)
     case source do
-      codebasehq ->
+      "codebasehq" ->
         %{:source => :codebaseHQ, :name => link}
-      github ->
+      "github" ->
         %{:source => :github, :name => link}
     end
   end
