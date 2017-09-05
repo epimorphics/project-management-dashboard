@@ -58,7 +58,7 @@ config :logger, level: :info
 
 # Finally import the config/prod.secret.exs
 # which should be versioned separately.
-config :hello_phoenix, :slack_api, Slack.Externals
+config :hello_phoenix, :slack_api, Slack.API
 config :hello_phoenix, :github_api, Github.API
 config :hello_phoenix, :jenkins_api, Jenkins.API
 config :hello_phoenix, :codebasehq_api, CodebaseHQ.API
