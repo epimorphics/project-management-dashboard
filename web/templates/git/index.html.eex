@@ -1,5 +1,0 @@
-<div>
-  <%= for repo <- repos() do %>
-    <%= render HelloPhoenix.ComponentView, "gitsource.html", repo: repo%>
-  <%= end %>
-</div>
