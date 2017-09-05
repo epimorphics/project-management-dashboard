@@ -1,4 +1,4 @@
-defmodule CodebaseHQ do
+defmodule CodebaseHQ.API do
   @api "https://api3.codebasehq.com"
   @projectEndpoint "/projects"
 
@@ -13,79 +13,8 @@ defmodule CodebaseHQ do
     headers = ["Content-type": "application/json", "Accept": "application/json"]
   end
 
-  def codebaseHQ do
-    repos = Enum.map(CodebaseHQ.getProjects, fn(y) ->
-
-      tickets = getTickets(y[:permalink])
-      y
-      |> Map.put(:users, getAssignments(y))
-      |> Map.put(:bugs, getBugs(tickets))
-      |> Map.put(:priorities, getPriorities(tickets))
-      |> Map.put(:time, getLastUpdate(y))
-    end)
-    %{:repos => repos, :users => getUsers(repos)}
-  end
-
-  def toStandardForm(project) do
-    users = Source.get(:users)
-            |> Enum.filter(fn(user) -> Map.has_key?(user, :email_address) end)
-    project_emails = project.users
-
-    avatars = project.users
-    |> Enum.map(fn(email) ->
-      user = Enum.find(users, fn(user) ->
-        user.email_address == email
-      end)
-      Map.get(user, :login)
-    end)
-    |> Enum.filter(fn(x) -> x != nil end)
-
-    metrics = %{
-      :Issues => project.open_tickets,
-      :Bugs => project.bugs,
-      :Critical => Map.get(project.priorities, "Critical", 0)}
-
-    %{
-      :source => :cb,
-      :name => project.permalink,
-      :displayName => project.name,
-      :time => project.time,
-      :description => project.overview,
-      :avatars => avatars,
-      :metrics => metrics
-    }
-  end
-
-  def toStandardForm(project, users) do
-    users = Enum.filter(users, fn(user) -> Map.has_key?(user, :email_address) end)
-    project_emails = project.users
-
-    avatars = project.users
-    |> Enum.map(fn(email) ->
-      user = Enum.find(users, %{}, fn(user) ->
-        Map.get(user, :email_address, "") == email
-      end)
-      Map.get(user, :login, nil)
-    end)
-    |> Enum.filter(fn(x) -> x != nil end)
-
-    metrics = %{
-      :Issues => project.open_tickets,
-      :Bugs => project.bugs,
-      :Critical => Map.get(project.priorities, "Critical", 0)}
-
-    %{
-      :source => :cb,
-      :name => project.permalink,
-      :displayName => project.name,
-      :time => project.time,
-      :description => project.overview,
-      :avatars => avatars,
-      :metrics => metrics
-    }
-  end
-
   def getProjects do
+    HTTPoison.start
     expected_fields = ~w(open_tickets name overview permalink status)
     HTTPoison.get!(@api <> @projectEndpoint, headers, auth).body
     |> Poison.decode!
@@ -100,8 +29,90 @@ defmodule CodebaseHQ do
   end
 
   def getTickets(projectPermalink) do
+    HTTPoison.start
     HTTPoison.get!(@api <> "/" <> projectPermalink <> "/tickets/", headers, auth).body
     |> Poison.decode!
+  end
+
+  def getLastUpdate(project) do
+    HTTPoison.start
+    url = @api <> "/" <> Map.get(project, :permalink) <> "/activity"
+    HTTPoison.get!(url, headers, auth).body
+    |> Poison.decode!
+    |> List.first
+    |> Map.get("event")
+    |> Map.get("timestamp")
+    |> Timex.parse!("{YYYY}-{M}-{D} {h24}:{m}:{s} UTC")
+  end
+
+  def getAssignments(project) do
+    HTTPoison.start
+    url = @api <> "/" <>  Map.get(project, :permalink) <> "/assignments"
+    HTTPoison.get!(url, headers, auth).body
+    |> Poison.decode!
+    |> Enum.map(&Map.get(&1, "user"))
+    |> Enum.filter(fn(x) -> x["company"] == "Epimorphics Limited" end)
+    |> Enum.map(&Map.get(&1, "email_address"))
+  end
+
+  def getProjectUsers(projectPermalink) do
+    HTTPoison.start
+    url = @api <> "/" <> projectPermalink <> "/assignments"
+    HTTPoison.get!(url, headers, auth).body
+    |> Poison.decode!
+  end
+end
+
+defmodule CodebaseHQ do
+  @codebasehq_api Application.get_env(:hello_phoenix, :codebasehq_api)
+
+  def codebaseHQ do
+    repos = Enum.map(@codebasehq_api.getProjects, fn(y) ->
+      tickets = @codebasehq_api.getTickets(y[:permalink])
+      y
+      |> Map.put(:users, @codebasehq_api.getAssignments(y))
+      |> Map.put(:bugs, getBugs(tickets))
+      |> Map.put(:priorities, getPriorities(tickets))
+      |> Map.put(:time, @codebasehq_api.getLastUpdate(y))
+    end)
+    %{:repos => repos, :users => getUsers(repos)}
+  end
+
+  def toStandardForm(project, users) do
+    avatars = Enum.filter(users, &Enum.member?(project.users, Map.get(&1, :email_address, "")))
+    |> Enum.map(&Map.get(&1, :login, nil))
+    |> Enum.filter(&Kernel.!=(&1, nil))
+
+    metrics = %{
+      :Issues => project.open_tickets,
+      :Bugs => project.bugs,
+      :Critical => Map.get(project.priorities, "Critical", 0)}
+
+    %{
+      :source => :cb,
+      :name => project.permalink,
+      :displayName => project.name,
+      :time => project.time,
+      :description => project.overview,
+      :avatars => avatars,
+      :metrics => metrics
+    }
+  end
+
+  def getUsers(projects) do
+    projects
+    |> Enum.map(fn(x) ->
+      @codebasehq_api.getProjectUsers(Map.get(x, :permalink))
+    end)
+    |> List.flatten
+    |> Enum.uniq
+    |> Enum.map(&Map.get(&1, "user"))
+    |> Enum.map(fn (x) ->
+         x
+         |> Enum.reduce(%{}, fn({k,v}, all) ->
+              Map.merge(all, %{String.to_atom(k) => v})
+            end)
+       end)
   end
 
   def getBugs(tickets) do
@@ -119,7 +130,7 @@ defmodule CodebaseHQ do
 
   def getPriorities(tickets) do
     Enum.reduce(tickets, %{}, fn (x, acc) ->
-      current_acc = Map.get(acc, CodebaseHQ.getPriority(x), 0)
+      current_acc = Map.get(acc, getPriority(x), 0)
       current_acc = case CodebaseHQ.getStatus(x) do
         true -> current_acc
         false -> current_acc + 1
@@ -130,59 +141,22 @@ defmodule CodebaseHQ do
 
   def getPriority(ticket) do
     ticket
-    |> Map.get("ticket")
-    |> Map.get("priority")
+    |> Map.get("ticket", %{})
+    |> Map.get("priority", %{})
     |> Map.get("name")
   end
 
   def getStatus(ticket) do
     ticket
-    |> Map.get("ticket")
-    |> Map.get("status")
+    |> Map.get("ticket", %{})
+    |> Map.get("status", %{})
     |> Map.get("treat-as-closed")
   end
 
   def getType(ticket) do
     ticket
-    |> Map.get("ticket")
-    |> Map.get("type")
+    |> Map.get("ticket", %{})
+    |> Map.get("type", %{})
     |> Map.get("name")
-  end
-
-  def getLastUpdate(project) do
-    url = @api <> "/" <> Map.get(project, :permalink) <> "/activity"
-    HTTPoison.get!(url, headers, auth).body
-    |> Poison.decode!
-    |> List.first
-    |> Map.get("event")
-    |> Map.get("timestamp")
-    |> Timex.parse!("{YYYY}-{M}-{D} {h24}:{m}:{s} UTC")
-  end
-
-  def getAssignments(project) do
-    url = @api <> "/" <>  Map.get(project, :permalink) <> "/assignments"
-    HTTPoison.get!(url, headers, auth).body
-    |> Poison.decode!
-    |> Enum.map(&Map.get(&1, "user"))
-    |> Enum.filter(fn(x) -> x["company"] == "Epimorphics Limited" end)
-    |> Enum.map(&Map.get(&1, "email_address"))
-  end
-
-  def getUsers(projects) do
-    projects
-    |> Enum.map(fn(x) ->
-      url = @api <> "/" <>  Map.get(x, :permalink) <> "/assignments"
-      HTTPoison.get!(url, headers, auth).body
-      |> Poison.decode!
-    end)
-    |> Enum.reduce([], &Enum.concat(&1, &2))
-    |> Enum.uniq
-    |> Enum.map(&Map.get(&1, "user"))
-    |> Enum.map(fn (x) -> 
-         x
-         |> Enum.reduce(%{}, fn({k,v}, all) ->
-              Map.merge(all, %{String.to_atom(k) => v})
-            end)
-       end)
   end
 end
