@@ -1,6 +1,8 @@
 defmodule Slack.API do
+  @fuseki_api Application.get_env(:hello_phoenix, :fuseki_api)
+
   def getHooks do
-   Fuseki.queryDB("SELECT ?name ?webhook WHERE { ?project rdf:type :project . ?project rdf:name ?name . ?project :webhook ?webhook .}")
+   @fuseki_api.queryDB("SELECT ?name ?webhook WHERE { ?project rdf:type :project . ?project rdf:name ?name . ?project :webhook ?webhook .}")
   end
 
   def sendToHook(message, hook) do

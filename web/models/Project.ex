@@ -1,7 +1,8 @@
 defmodule Project do
+  @fuseki_api Application.get_env(:hello_phoenix, :fuseki_api)
 
   def getTimeseries(name) do
-    Fuseki.queryDB("
+    @fuseki_api.queryDB("
       SELECT ?name (SUM(?val) as ?value) ?date
       WHERE {
         ?project rdf:type :project .
@@ -16,7 +17,6 @@ defmodule Project do
       } GROUP BY ?name ?metricName ?date
         ORDER BY ?date
     ")
-    |> Fuseki.parseJSON
     |> Enum.reduce(%{}, fn(row, series) ->
         updateMetric = Map.get(series, row["name"], %{})
         |> Map.put(row["date"], String.to_integer(row["value"]))
@@ -32,14 +32,13 @@ defmodule Project do
   end
 
   def getTransform(name) do
-    Fuseki.queryDB("
+    @fuseki_api.queryDB("
       SELECT ?transform
       WHERE {
         ?project rdf:type :project .
         ?project rdf:name \"" <> name <> "\" .
         ?project :transform ?transform .
       }")
-      |> Fuseki.parseJSON
       |> List.first
       |> Map.get("transform")
       |> Base.decode64!

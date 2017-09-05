@@ -1,5 +1,4 @@
-defmodule Fuseki do
-
+defmodule Fuseki.API do
   def prefixes do
     "prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
      prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -15,6 +14,7 @@ defmodule Fuseki do
     HTTPoison.start
     HTTPoison.get!("http://localhost:3030/ds/query", [], params: [{"query", prefixes() <> sparqlquery}, {"output", "json"}]).body
     |> Poison.decode!
+    |> parseJSON
   end
 
   def updateDB(sparqlquery) do
@@ -33,6 +33,10 @@ defmodule Fuseki do
       end)
     end)
   end
+end
+
+defmodule Fuseki do
+  @fuseki_api Application.get_env(:hello_phoenix, :fuseki_api)
 
   def putStandardForm(project) do
     out = putRepoData(project)
@@ -44,22 +48,21 @@ defmodule Fuseki do
   end
 
   def getRepoNames do
-    dbNames = queryDB("
+     @fuseki_api.queryDB("
       SELECT ?name
       WHERE {
         ?project rdf:type ?type .
         ?project rdf:name ?name
         FILTER(?type IN (:cb, :git, :trello))
       }")
-      |> parseJSON
       |> Enum.map(fn(x) -> x["name"] end)
   end
 
   def putRepoData(project) do
     result = []
-    current = getRepoNames
+    current = getRepoNames()
     if !Enum.member?(current, project.name) do
-    update = updateDB("INSERT DATA { " <>
+    update = @fuseki_api.updateDB("INSERT DATA { " <>
       "_:project" <> " rdf:type :" <> Atom.to_string(project.source) <> " ;" <>
       " rdf:name \"" <> project.name <> "\" ; " <>
       " :displayName \"" <> project.displayName <> "\"; " <>
@@ -72,7 +75,7 @@ defmodule Fuseki do
   end
 
   def getWebhook(project) do
-    queryDB("
+    @fuseki_api.queryDB("
     SELECT ?webhook
     WHERE {
       ?project rdf:type :project .
@@ -80,27 +83,25 @@ defmodule Fuseki do
       ?project :webhook ?webhook .
     }
     ")
-    |> parseJSON
     |> Enum.map(fn(x) -> x["webhook"] end)
   end
 
   def getMetrics(project) do
-    queryDB("SELECT ?name
+    @fuseki_api.queryDB("SELECT ?name
     WHERE {
         ?project rdf:name \"" <> project.name <> "\" .
         ?project :metric ?metric .
         ?metric rdf:name ?name .
         }")
-        |> parseJSON
         |> Enum.map(&Map.get(&1, "name"))
   end
 
   def putMetrics(project) do
     current = getMetrics(project)
-    toAdd = Enum.filter(project.metrics, fn({k,v}) ->
+    toAdd = Enum.filter(project.metrics, fn({k,_}) ->
       !Enum.member?(current, to_string(k))
     end)
-    result = updateDB(Enum.reduce(toAdd, "", fn({k, v}, all) ->
+    result = @fuseki_api.updateDB(Enum.reduce(toAdd, "", fn({k, _}, all) ->
       stripped = Regex.replace(~r/[^a-zA-Z0-9]/, to_string(k), "", global: true)
       all <> "INSERT { " <>
              "_:" <> stripped <> " rdf:type :metric ; " <>
@@ -111,13 +112,12 @@ defmodule Fuseki do
   end
 
   def getAvatars(project) do
-    queryDB("SELECT ?login
+    @fuseki_api.queryDB("SELECT ?login
     WHERE {
         ?project rdf:name \"" <> project.name <> "\" .
         ?a :worksOn ?project .
         ?a :login ?login .
         }")
-        |> parseJSON
         |> Enum.map(&Map.get(&1, "login"))
   end
 
@@ -128,7 +128,7 @@ defmodule Fuseki do
     toAdd = Enum.filter(project.avatars, fn(avatar) ->
       !Enum.member?(current, avatar)
     end)
-    output = updateDB(Enum.reduce(toAdd, "", fn(x, all) ->
+    output = @fuseki_api.updateDB(Enum.reduce(toAdd, "", fn(x, all) ->
       all <> " INSERT {
         ?person :worksOn ?project ;
       } WHERE {
@@ -141,7 +141,7 @@ defmodule Fuseki do
   end
 
   def putMetricData(project) do
-    result = updateDB(Enum.reduce(project.metrics, "", fn({k, v}, all) ->
+    result = @fuseki_api.updateDB(Enum.reduce(project.metrics, "", fn({k, v}, all) ->
          stripped = Regex.replace(~r/[^a-zA-Z0-9]/, to_string(k), "", global: true)
          all <>
          " DELETE { " <>
@@ -168,12 +168,11 @@ defmodule Fuseki do
   end
 
   def getUsers do
-    queryDB("SELECT DISTINCT ?login
+    @fuseki_api.queryDB("SELECT DISTINCT ?login
      WHERE {
       ?person rdf:type foaf:person .
       ?person :login ?login .
       }")
-    |> parseJSON
     |> Enum.map(fn(user) -> user["login"] end)
   end
 
@@ -181,8 +180,7 @@ defmodule Fuseki do
     current = getUsers
     users
     |> Enum.filter(fn(x) -> !Enum.member?(current, x.login) end)
-    #|> Enum.filter(fn(x) -> x.company == "Epimorphics Limited" end)
-    |> Enum.map(fn(user) -> updateDB("INSERT DATA { " <>
+    |> Enum.map(fn(user) -> @fuseki_api.updateDB("INSERT DATA { " <>
      "_:tempUser rdf:type foaf:person ; " <>
         Enum.reduce(user, "", fn({k, v}, all) ->
          all <> " :" <> to_string(k) <> " \"" <> v <> "\" ; " end) <>
@@ -191,8 +189,7 @@ defmodule Fuseki do
 
 
   def getProjects do
-    queryDB("SELECT ?name ?url WHERE { ?project rdf:type doap:project. ?project rdf:resource ?url . ?project rdf:name ?name. }")
-    |> parseJSON
+    @fuseki_api.queryDB("SELECT ?name ?url WHERE { ?project rdf:type doap:project. ?project rdf:resource ?url . ?project rdf:name ?name. }")
     |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => x["name"], :url => x["url"], :cb => [], :git => [], :trello => []}] end)
        |> Enum.uniq
     |> getCB
@@ -201,8 +198,7 @@ defmodule Fuseki do
   end
 
   def getProject(name) do
-    queryDB("SELECT ?url ?transform ?webhook WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name \"" <> name <> "\" . OPTIONAL { ?project :webhook ?webhook}}")
-    |> parseJSON
+    @fuseki_api.queryDB("SELECT ?url ?transform ?webhook WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name \"" <> name <> "\" . OPTIONAL { ?project :webhook ?webhook}}")
     |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => name, :source => :epi, :transform => Base.decode64!(x["transform"]), :url => x["url"], :webhook => x["webhook"], :repos => [], :trello => []}] end)
     |> getRepos
     |> getTrello
@@ -210,7 +206,7 @@ defmodule Fuseki do
   end
 
   def getRepos(projects) do
-    git = queryDB(
+    git = @fuseki_api.queryDB(
       "SELECT ?projectName ?name ?url ?displayName
        WHERE {
        ?project rdf:type :project .
@@ -219,7 +215,6 @@ defmodule Fuseki do
        ?repo rdf:name ?name .
        ?repo rdf:resource ?url .
        ?repo :displayName ?displayName . }")
-    |> parseJSON
      Enum.map(projects, fn(project) ->
       list = Enum.filter(git, fn(result) -> Map.get(result, "projectName") == project.name end)
       |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
@@ -227,22 +222,21 @@ defmodule Fuseki do
   end
 
   def newProjects do
-    queryDB("SELECT ?name ?url ?transform WHERE { ?project rdf:type :project. ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name ?name. }")
-    |> parseJSON
+    @fuseki_api.queryDB("SELECT ?name ?url ?transform WHERE { ?project rdf:type :project. ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name ?name. }")
     |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => x["name"], :source => :epi, :transform => Base.decode64!(x["transform"]), :url => x["url"], :repos => [], :trello => []}] end)
     |> getRepos
     |> getTrello
   end
 
   def deleteProject(project) do
-    updateDB("DELETE {?project ?a ?b} " <>
+    @fuseki_api.updateDB("DELETE {?project ?a ?b} " <>
       "WHERE {?project rdf:type :project .
       ?project rdf:name \"" <> project["name"] <> "\" .
       ?project ?a ?b .} ")
   end
 
   def putProject(project) do
-    updateDB("DELETE {?project ?a ?b} " <>
+    @fuseki_api.updateDB("DELETE {?project ?a ?b} " <>
       "WHERE {?project rdf:type :project .
       ?project rdf:name \"" <> project["name"] <> "\" .
       ?project ?a ?b .} ; " <>
@@ -280,7 +274,7 @@ defmodule Fuseki do
   end
 
   def getCB(projects) do
-    cb = queryDB(
+    cb = @fuseki_api.queryDB(
       "SELECT ?projectName ?name ?url ?displayName
        WHERE {
        ?project rdf:type doap:project .
@@ -289,7 +283,6 @@ defmodule Fuseki do
        ?a rdf:name ?name .
        ?a rdf:resource ?url .
        ?a :displayName ?displayName . }")
-    |> parseJSON
      Enum.map(projects, fn(project) ->
       list = Enum.filter(cb, fn(result) -> Map.get(result, "projectName") == project.name end)
              |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
@@ -297,7 +290,7 @@ defmodule Fuseki do
   end
 
   def getGit(projects) do
-    git = queryDB(
+    git = @fuseki_api.queryDB(
       "SELECT ?projectName ?name ?url ?displayName
        WHERE {
        ?project rdf:type doap:project .
@@ -306,7 +299,6 @@ defmodule Fuseki do
        ?a rdf:name ?name .
        ?a rdf:resource ?url .
        ?a :displayName ?displayName . }")
-    |> parseJSON
      Enum.map(projects, fn(project) ->
       list = Enum.filter(git, fn(result) -> Map.get(result, "projectName") == project.name end)
       |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
@@ -314,13 +306,12 @@ defmodule Fuseki do
   end
 
   def putGit(projects) do
-    dbNames = queryDB("
+    dbNames = @fuseki_api.queryDB("
       SELECT ?name
       WHERE {
         ?project rdf:type :git .
         ?project rdf:name ?name
       }")
-      |> parseJSON
       |> Enum.map(fn(x) -> x["name"] end)
     # not added
     Enum.filter(projects, fn(x) -> !Enum.member?(dbNames, x.name) end)
@@ -328,7 +319,7 @@ defmodule Fuseki do
   end
 
   def getTrello(projects) do
-    trello = queryDB(
+    trello = @fuseki_api.queryDB(
       "SELECT ?projectName ?name ?url ?displayName
        WHERE {
        ?project rdf:type :project .
@@ -337,7 +328,6 @@ defmodule Fuseki do
        ?trello rdf:name ?name .
        ?trello rdf:resource ?url .
        ?trello :displayName ?displayName . }")
-    |> parseJSON
     Enum.map(projects, fn(project) ->
     list = Enum.filter(trello, fn(result) -> Map.get(result, "projectName") == project.name end)
     |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
@@ -345,7 +335,7 @@ defmodule Fuseki do
   end
 
   def getTrelloJSON do
-    metrics = queryDB("
+    metrics = @fuseki_api.queryDB("
       SELECT ?name ?metricName ?value
       WHERE {
         ?a rdf:name ?name .
@@ -355,14 +345,13 @@ defmodule Fuseki do
         ?metric :lastData ?x .
         ?x xsd:integer ?value
       }")
-    |> parseJSON
     |> Enum.reduce(%{}, fn(x, all) ->
       update = Map.get(all, x["name"], %{})
       |> Map.put(x["metricName"], String.to_integer(x["value"]))
 
       Map.put(all, x["name"], update)
     end)
-    details = queryDB("
+    details = @fuseki_api.queryDB("
       SELECT ?name ?displayName ?url
       WHERE {
         ?a rdf:name ?name .
@@ -371,7 +360,6 @@ defmodule Fuseki do
         ?a rdf:resource ?url .
       }
       ")
-    |> parseJSON
 
     Enum.map(details, fn(x) ->
       Map.put(x, "metrics", metrics[x["name"]])
@@ -381,7 +369,7 @@ defmodule Fuseki do
   end
 
   def getProjectJSON do
-    avatars = queryDB("
+    avatars = @fuseki_api.queryDB("
       select ?name ?avatar
       where {
         ?project rdf:name ?name .
@@ -389,13 +377,12 @@ defmodule Fuseki do
         ?person :avatar_url ?avatar .
       }
     ")
-    |> parseJSON
     |> Enum.reduce(%{}, fn(x, all) ->
       avatars = Map.get(all, x["name"], [])
       |> Kernel.++ [ x["avatar"] ]
 
       Map.put(all, x["name"], avatars) end)
-    details = queryDB("
+    details = @fuseki_api.queryDB("
       select ?name ?url ?displayName ?description ?source ?test
       where {
         ?x rdf:name ?name .
@@ -411,8 +398,7 @@ defmodule Fuseki do
         FILTER(?type IN (:cb, :git))
       }
     ")
-    |> parseJSON
-    metrics = queryDB("
+    metrics = @fuseki_api.queryDB("
       select ?projectName ?metricName ?value
       where {
         ?x rdf:name ?projectName .
@@ -424,7 +410,6 @@ defmodule Fuseki do
         FILTER(?type IN (:cb, :git))
       }
     ")
-    |> parseJSON
     |> Enum.reduce(%{}, fn(x, all) ->
       update = Map.get(all, x["projectName"], %{})
       |> Map.put(x["metricName"], String.to_integer(x["value"]))
@@ -439,7 +424,7 @@ defmodule Fuseki do
   end
 
   def getProjectJSON(name) do
-    avatars = queryDB("
+    avatars = @fuseki_api.queryDB("
       select ?name ?avatar
       where {
         ?project rdf:name \"" <> name  <> "\" .
@@ -448,13 +433,12 @@ defmodule Fuseki do
         ?person :avatar_url ?avatar .
       }
     ")
-    |> parseJSON
     |> Enum.reduce(%{}, fn(x, all) ->
       avatars = Map.get(all, x["name"], [])
-      |> Kernel.++ [ x["avatar"] ]
+      |> Kernel.++([x["avatar"]])
 
       Map.put(all, x["name"], avatars) end)
-    details = queryDB("
+    details = @fuseki_api.queryDB("
       select ?name ?displayName ?description ?source ?test
       where {
         ?x rdf:name \"" <> name  <> "\" .
@@ -469,8 +453,7 @@ defmodule Fuseki do
         }
       }
     ")
-    |> parseJSON
-    metrics = queryDB("
+    metrics = @fuseki_api.queryDB("
       select ?projectName ?metricName ?value
       where {
         ?x rdf:name \"" <> name  <> "\" .
@@ -483,7 +466,6 @@ defmodule Fuseki do
         FILTER(?type IN (:cb, :git, :trello))
       }
     ")
-    |> parseJSON
     |> Enum.reduce(%{}, fn(x, all) ->
       update = Map.get(all, x["projectName"], %{})
       |> Map.put(x["metricName"], String.to_integer(x["value"]))
@@ -499,7 +481,7 @@ defmodule Fuseki do
   end
 
   def getTimeseries(name) do
-    queryDB("
+    @fuseki_api.queryDB("
     SELECT ?name ?value ?date
     WHERE {
         ?a rdf:name \"" <> name <> "\".
@@ -509,10 +491,8 @@ defmodule Fuseki do
         ?data xsd:integer ?value .
         ?data xsd:dateTime ?date .
         } ORDER BY ASC(?date)")
-        |> parseJSON
         |> Enum.reduce(%{}, fn(x, all) ->
-          update = Map.get(all, x["name"], [])
-          |> Kernel.++ [%{x["date"] => x["value"]}]
+          update = Map.get(all, x["name"], []) |> Kernel.++([%{x["date"] => x["value"]}])
           Map.put(all, x["name"], update)
         end)
   end
@@ -520,7 +500,7 @@ defmodule Fuseki do
   def putTests(tests) do
     tests
     |> Enum.map(fn(x) ->
-      updateDB("
+      @fuseki_api.updateDB("
         DELETE { ?project :lastTest ?a }
         WHERE {
           ?project rdf:name \"" <> x.name <> "\" .
