@@ -1,3 +1,9 @@
+defmodule Jenkins.Test do
+  def getStatus(headers, auth) do
+    File.read!("./jenkinsresp")
+  end
+end
+
 defmodule JenkinsTest do
   use ExUnit.Case
 

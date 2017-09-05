@@ -80,34 +80,6 @@ defmodule Github.API do
   end
 end
 
-defmodule Github.Test do
-
-  def getIssues(repoName) do
-    case repoName do
-      "open" -> [%{:labels=> [], :state=> "open"}]
-      "closed" -> [%{:labels=>[], :state=> "closed"}]
-      "epi-dash" -> [%{labels: [%{"color" => "ee0701", "default" => true,
-              "id" => 661234153, "name" => "bug",
-              "url" => "https://api.github.com/repos/epimorphics/epi-dash/labels/bug"}],
-           state: "open"}]
-    end
-  end
-
-  def getRepos do
-    [%{:description=> "Dashboard for epimorphics",
-      :name=> "epi-dash", :open_issues=> 1,
-      :pushed_at=> "2017-09-01T15:03:17Z"}]
-  end
-
-  def getContributors(repoName) do
-    case repoName do
-      "epi-dash" -> [%{avatar_url: "https://avatars2.githubusercontent.com/u/3824538?v=4",
-           contributions: 35, login: "heshoots"}]
-    end
-  end
-
-end
-
 defmodule Github do
   @github_api Application.get_env(:hello_phoenix, :github_api)
 
@@ -162,6 +134,5 @@ defmodule Github do
     |> Enum.map(fn (repo) ->
          Map.put(repo, :issueTypes, getIssueTypes(repo.issues)) end)
   end
-
 
 end

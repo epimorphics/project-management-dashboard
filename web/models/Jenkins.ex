@@ -5,12 +5,6 @@ defmodule Jenkins.API do
   end
 end
 
-defmodule Jenkins.Test do
-  def getStatus(headers, auth) do
-    File.read!("./jenkinsresp")
-  end
-end
-
 defmodule Jenkins do
   @jenkins_api Application.get_env(:hello_phoenix, :jenkins_api)
 

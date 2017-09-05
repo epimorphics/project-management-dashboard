@@ -1,3 +1,19 @@
+defmodule Slack.API do
+  def getHooks do
+   Fuseki.queryDB("SELECT ?name ?webhook WHERE { ?project rdf:type :project . ?project rdf:name ?name . ?project :webhook ?webhook .}")
+  end
+
+  def sendToHook(message, hook) do
+    HTTPoison.start
+    HTTPoison.post(hook, Poison.encode!(message), [{"Content-Type", "application/json"}])
+  end
+
+  def getTimeseries(name) do
+    Project.getTimeseries(name)
+  end
+end
+
+
 defmodule Slack do
   @slack_api Application.get_env(:hello_phoenix, :slack_api)
 
