@@ -6,11 +6,11 @@ defmodule HelloPhoenix.ProjectController do
   end
 
   def reposJson(conn, _params) do
-    json conn, %{projects: Fuseki.getProjectJSON}
+    json conn, %{projects: Fuseki.getRepoJSON}
   end
 
   def repoJSON(conn, %{"repo" => repo}) do
-    json conn, Fuseki.getProjectJSON(repo)
+    json conn, Fuseki.getRepoJSON(repo)
   end
 
   def repoTimeSeries(conn, %{"repo" => repo}) do
@@ -26,12 +26,8 @@ defmodule HelloPhoenix.ProjectController do
     json(conn, %{:done => "success"})
   end
 
-  def testMultiSourceJSON(conn, _params) do
-    json conn, List.first Fuseki.getProjects
-  end
-
   def testProjectJSON(conn, _params) do
-    json conn, Fuseki.newProjects
+    json conn, Fuseki.getProjects
   end
 
   def update(conn, _params) do
