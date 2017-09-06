@@ -3,10 +3,6 @@ defmodule Jenkins.API do
     HTTPoison.start
     HTTPoison.get!("https://epi-jenkins.epimorphics.net/api/json?depth=2", headers, auth).body
   end
-end
-
-defmodule Jenkins do
-  @jenkins_api Application.get_env(:hello_phoenix, :jenkins_api)
 
   def auth do
     user = Application.fetch_env!(:hello_phoenix, :jenkins_user)
@@ -19,9 +15,14 @@ defmodule Jenkins do
     headers = ["Content-type": "application/json", "Accept": "application/json"]
   end
 
+end
+
+defmodule Jenkins do
+  @jenkins_api Application.get_env(:hello_phoenix, :jenkins_api)
+
   def getStatus do
     expected_fields = ~w(name remote result)
-    @jenkins_api.getStatus(headers, auth)
+    @jenkins_api.getStatus(@jenkins_api.headers, @jenkins_api.auth)
     |> Poison.decode!
     |> Map.get("jobs")
     |> Enum.map(fn(x) -> 

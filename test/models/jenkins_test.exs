@@ -1,6 +1,15 @@
 defmodule Jenkins.Test do
   def getStatus(headers, auth) do
+    send self(), {headers, auth}
     File.read!("./jenkinsresp")
+  end
+
+  def auth do
+    "testauth"
+  end
+
+  def headers do
+    "testheaders"
   end
 end
 
@@ -29,6 +38,7 @@ defmodule JenkinsTest do
              source: :codebaseHQ, success: true},
         %{ciname: "wims-ui", name: "engagements",
              source: :codebaseHQ, success: true}]
+    assert_received {"testheaders", "testauth"}
   end
 
   test "remote string codebase" do
