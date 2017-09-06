@@ -23,3 +23,4 @@ config :hello_phoenix, :github_api, Github.Test
 config :hello_phoenix, :jenkins_api, Jenkins.Test
 config :hello_phoenix, :codebasehq_api, CodebaseHQ.Test
 config :hello_phoenix, :fuseki_api, Fuseki.Test
+config :hello_phoenix, :trello_api, Trello.Test

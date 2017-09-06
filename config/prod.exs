@@ -63,5 +63,6 @@ config :hello_phoenix, :github_api, Github.API
 config :hello_phoenix, :jenkins_api, Jenkins.API
 config :hello_phoenix, :codebasehq_api, CodebaseHQ.API
 config :hello_phoenix, :fuseki_api, Fuseki.API
+config :hello_phoenix, :trello_api, Trello.API
 
 import_config "prod.secret.exs"
