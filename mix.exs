@@ -10,6 +10,7 @@ defmodule HelloPhoenix.Mixfile do
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
      aliases: aliases(),
+     test_coverage: [tool: ExCoveralls],
      deps: deps()]
   end
 
@@ -41,6 +42,7 @@ defmodule HelloPhoenix.Mixfile do
      {:cowboy, "~> 1.0"},
      {:httpoison, "~> 0.12"},
      {:timex, "~> 3.1"},
+     {:excoveralls, "~> 0.7", only: :test},
      {:credo, "~> 0.8", only: [:dev, :test], runtime: false}]
   end
 
