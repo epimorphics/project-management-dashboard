@@ -197,10 +197,10 @@ defmodule FusekiTests do
   test "putTests" do
     send self(), {:out, [200]}
     timeexpected = Timex.format!(Timex.now, "{YYYY}-{0M}-{0D}T{h24}:{m}:{s}+00:00")
-    expected = "DELETE { ?project :lastTest ?a } WHERE { ?project rdf:name \"testname\" . ?project :lastTest ?a }; INSERT { _:newTest xsd:boolean true . _:newTest xsd:dateTime \"" <> timeexpected <> "\" . ?project :test _:newTest . ?project :lastTest _:newTest . } WHERE { ?project rdf:name \"testname\" . }"
+    expectedstr = "DELETE { ?project :lastTest ?a } WHERE { ?project rdf:name \"testname\" . ?project :lastTest ?a }; INSERT { _:newTest xsd:boolean true . _:newTest xsd:dateTime \"" <> timeexpected <> "\" . ?project :test _:newTest . ?project :lastTest _:newTest . } WHERE { ?project rdf:name \"testname\" . }"
 
     assert Fuseki.putTests([%{:name => "testname", :success => true }]) == [200]
-    assert_received expected
+    assert_received expectedstr
   end
 
   test "putStandardForm" do
@@ -208,7 +208,7 @@ defmodule FusekiTests do
     send self(), {:out, [200]}
     send self(), {:out, [%{"login" => "testlogin"}]}
     send self(), {:out, [200]}
-    send self(), {:out, [%{"name" => "Issues"}]}
+    send self(), {:out, [%{"name" => "Bugs"}]}
     send self(), {:out, [200]}
     send self(), {:out, [200]}
     project = %{

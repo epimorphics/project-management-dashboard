@@ -20,7 +20,7 @@ defmodule Fuseki.API do
   def updateDB(sparqlquery) do
     HTTPoison.start
     {:ok, status} = HTTPoison.post("http://localhost:3030/ds/update", Poison.encode!(%{}), [{"Content-Type", "application/x-www-form-urlencoded"}], params: [{"update", prefixes() <> sparqlquery}])
-    {:ok, status.status_code}
+    [status.status_code]
   end
 
   def parseJSON(json) do
@@ -43,7 +43,6 @@ defmodule Fuseki do
     |> Kernel.++ putAvatars(project)
     |> Kernel.++ putMetrics(project)
     |> Kernel.++ putMetricData(project)
-    if {:ok, 400} in Enum.uniq(out) do IO.puts(project.name) end
     Enum.uniq(out)
   end
 

@@ -72,7 +72,6 @@ defmodule Project do
 
   def newmapmerge(a, b, fun) do
     Enum.reduce(Map.keys(a), b, fn(key, newb) ->
-      IO.puts(key)
       newkey = Timex.parse!(key, "{ISO:Extended}")
       |> Timex.format!("{YYYY}-{0M}-{0D}T{h24}:{m}:00+00:00")
       Map.put(newb, newkey, fun.(Map.get(a, key, 0), Map.get(newb, newkey, 0)))
