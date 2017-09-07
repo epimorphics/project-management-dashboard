@@ -3,7 +3,7 @@ defmodule Users do
     repos
     |> Map.get(:repos)
     |> Enum.map(&Map.get(&1, :contributors))
-    |> Enum.reduce([], &Enum.concat(&1, &2))
+    |> Enum.reduce([], &Enum.concat(&2, &1))
     |> Enum.map(&Map.take(&1, [:login, :avatar_url]))
     |> Enum.uniq
   end
