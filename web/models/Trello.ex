@@ -16,14 +16,19 @@ defmodule Trello.API do
   end
 
   def getBoards do
+    expected_fields = ~w(memberships name shortLink)
     HTTPoison.start
     HTTPoison.get!(@api <> @orgsEndpoint <> @boardsEndpoint <> auth <> "&filter=open", options).body
+    |> Poison.decode!
+    |> Enum.map(&Map.take(&1, expected_fields))
   end
 
   def getCards(boardLink) do
+    expected_fields = ~w(idList due)
     HTTPoison.start
     HTTPoison.get!(@api <> "boards/" <> boardLink <> @cardsEndpoint <> auth, options).body
     |> Poison.decode!
+    |> Enum.map(&Map.take(&1, expected_fields))
   end
 
   def getLists(boardLink) do
@@ -37,22 +42,21 @@ defmodule Trello.API do
 end
 
 defmodule Trello do
+  @trello_api Application.get_env(:hello_phoenix, :trello_api)
+
   def toStandardForm(board) do
     %{:source => :trello, :avatars => [], :name => board.shortLink, :metrics => Map.merge(board.deadlines, board.stats), :stats => board.stats, :deadlines => board.deadlines, :description => "", :displayName => board.name}
   end
 
   def getBoards do
-    expected_fields = ~w(cards, deadlines lists stats memberships name shortLink)
-    Trello.API.getBoards
-    |> Poison.decode!
+    @trello_api.getBoards
     |> Enum.map(fn(x) ->
        x
-       |> Map.take(expected_fields)
        |> Enum.reduce(%{}, fn({k,v}, all) ->
             Map.merge(all, %{String.to_atom(k) => v})
           end)
-       |> Map.put(:cards, Trello.API.getCards(Map.get(x, "shortLink")))
-       |> Map.put(:lists, Trello.API.getLists(Map.get(x, "shortLink")))
+       |> Map.put(:cards, @trello_api.getCards(Map.get(x, "shortLink")))
+       |> Map.put(:lists, @trello_api.getLists(Map.get(x, "shortLink")))
        |> boardStats
        |> boardDue
     end)
