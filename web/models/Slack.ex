@@ -49,8 +49,8 @@ defmodule Slack do
       {metricName , Enum.take(series[metricName], -2)}
     end)
     |> Enum.reduce(%{}, fn({k, v}, all) ->
-      {date, first} = Enum.at(v, 0)
-      {date, second} = Enum.at(v, 1)
+      {_, first} = Enum.at(v, 0)
+      {_, second} = Enum.at(v, 1)
       sum = second - first
       Map.put(all, k, sum)
     end)

@@ -18,7 +18,7 @@ defmodule Trello.API do
   def getBoards do
     expected_fields = ~w(memberships name shortLink)
     HTTPoison.start
-    HTTPoison.get!(@api <> @orgsEndpoint <> @boardsEndpoint <> auth <> "&filter=open", options).body
+    HTTPoison.get!(@api <> @orgsEndpoint <> @boardsEndpoint <> auth() <> "&filter=open", options()).body
     |> Poison.decode!
     |> Enum.map(&Map.take(&1, expected_fields))
   end
@@ -26,7 +26,7 @@ defmodule Trello.API do
   def getCards(boardLink) do
     expected_fields = ~w(idList due)
     HTTPoison.start
-    HTTPoison.get!(@api <> "boards/" <> boardLink <> @cardsEndpoint <> auth, options).body
+    HTTPoison.get!(@api <> "boards/" <> boardLink <> @cardsEndpoint <> auth(), options()).body
     |> Poison.decode!
     |> Enum.map(&Map.take(&1, expected_fields))
   end
@@ -34,7 +34,7 @@ defmodule Trello.API do
   def getLists(boardLink) do
     expected_fields = ~w(name id)
     HTTPoison.start
-    HTTPoison.get!(@api <> "boards/" <> boardLink <> @listsEndpoint <> auth, options).body
+    HTTPoison.get!(@api <> "boards/" <> boardLink <> @listsEndpoint <> auth(), options()).body
     |> Poison.decode!
     |> Enum.map(fn(x) -> Map.take(x, expected_fields) end)
   end
@@ -66,7 +66,7 @@ defmodule Trello do
     listNames = Enum.map(board.cards, fn(x) ->
       list = Map.get(x, "idList")
 
-      name = Enum.find(board.lists, fn(x) -> Map.get(x, "id") == list end)
+      Enum.find(board.lists, fn(x) -> Map.get(x, "id") == list end)
       |> Map.get("name")
     end)
     Map.put(board, :stats, Enum.reduce(listNames, %{}, fn(x, all) ->

@@ -10,13 +10,13 @@ defmodule CodebaseHQ.API do
   end
 
   def headers do
-    headers = ["Content-type": "application/json", "Accept": "application/json"]
+    ["Content-type": "application/json", "Accept": "application/json"]
   end
 
   def getProjects do
     HTTPoison.start
     expected_fields = ~w(open_tickets name overview permalink status)
-    HTTPoison.get!(@api <> @projectEndpoint, headers, auth).body
+    HTTPoison.get!(@api <> @projectEndpoint, headers(), auth()).body
     |> Poison.decode!
     |> Enum.map(fn (x) -> x["project"] end)
     |> Enum.map(fn (x) ->
@@ -30,14 +30,14 @@ defmodule CodebaseHQ.API do
 
   def getTickets(projectPermalink) do
     HTTPoison.start
-    HTTPoison.get!(@api <> "/" <> projectPermalink <> "/tickets/", headers, auth).body
+    HTTPoison.get!(@api <> "/" <> projectPermalink <> "/tickets/", headers(), auth()).body
     |> Poison.decode!
   end
 
   def getLastUpdate(project) do
     HTTPoison.start
     url = @api <> "/" <> Map.get(project, :permalink) <> "/activity"
-    HTTPoison.get!(url, headers, auth).body
+    HTTPoison.get!(url, headers(), auth()).body
     |> Poison.decode!
     |> List.first
     |> Map.get("event")
@@ -48,7 +48,7 @@ defmodule CodebaseHQ.API do
   def getAssignments(project) do
     HTTPoison.start
     url = @api <> "/" <>  Map.get(project, :permalink) <> "/assignments"
-    HTTPoison.get!(url, headers, auth).body
+    HTTPoison.get!(url, headers(), auth()).body
     |> Poison.decode!
     |> Enum.map(&Map.get(&1, "user"))
     |> Enum.filter(fn(x) -> x["company"] == "Epimorphics Limited" end)
@@ -58,7 +58,7 @@ defmodule CodebaseHQ.API do
   def getProjectUsers(projectPermalink) do
     HTTPoison.start
     url = @api <> "/" <> projectPermalink <> "/assignments"
-    HTTPoison.get!(url, headers, auth).body
+    HTTPoison.get!(url, headers(), auth()).body
     |> Poison.decode!
   end
 end

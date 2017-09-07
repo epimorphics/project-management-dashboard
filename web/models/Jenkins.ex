@@ -12,7 +12,7 @@ defmodule Jenkins.API do
   end
 
   def headers do
-    headers = ["Content-type": "application/json", "Accept": "application/json"]
+    ["Content-type": "application/json", "Accept": "application/json"]
   end
 
 end
@@ -21,7 +21,6 @@ defmodule Jenkins do
   @jenkins_api Application.get_env(:hello_phoenix, :jenkins_api)
 
   def getStatus do
-    expected_fields = ~w(name remote result)
     @jenkins_api.getStatus(@jenkins_api.headers, @jenkins_api.auth)
     |> Poison.decode!
     |> Map.get("jobs")
@@ -35,7 +34,7 @@ defmodule Jenkins do
 
       success = Map.get(x, "lastBuild")
         |> Map.get("result")
-        |> Kernel.== "SUCCESS"
+        |> Kernel.==("SUCCESS")
 
       Map.put(remote, :success, success)
       |> Map.put(:ciname, Map.get(x, "name"))

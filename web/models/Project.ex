@@ -79,8 +79,8 @@ defmodule Project do
   end
 
   def merge(timeseries, transform) do
-    needed = Enum.map(transform["fields"], fn(x) -> timeseries[x] end)
-            |> Enum.reduce(%{}, &newmapmerge(&1, &2, fn(a,b) -> a + b end))
+    Enum.map(transform["fields"], fn(x) -> timeseries[x] end)
+      |> Enum.reduce(%{}, &newmapmerge(&1, &2, fn(a,b) -> a + b end))
   end
 
   def multimerge(timeseries, transform) do

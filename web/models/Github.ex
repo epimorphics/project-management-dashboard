@@ -16,7 +16,7 @@ defmodule Github.API do
   def getIssues(repoName) do
     expected_fields = ~w(state labels)
     issues_link = @api <> @reposEndpoint <> @epiEndpoint <> "/" <> repoName <> "/issues"
-    HTTPoison.get!(issues_link, headers, options).body
+    HTTPoison.get!(issues_link, headers(), options()).body
     |> Poison.decode!
     |> Enum.map(fn (x) ->
          x
@@ -28,9 +28,8 @@ defmodule Github.API do
   end
 
   def getRepos do
-    expected_fields = ~w(name description open_issues pushed_at)
     HTTPoison.start
-    resp = HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers, options)
+    resp = HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @reposEndpoint , headers(), options())
     resp.body
     |> decodeRepos
     |> Enum.concat(getNext resp.headers)
@@ -39,7 +38,7 @@ defmodule Github.API do
   def getContributors(name) do
     expected_fields = ~w(login avatar_url contributions)
     HTTPoison.start
-    HTTPoison.get!(@api <> @reposEndpoint <> @epiEndpoint <> "/" <> name <> "/contributors", headers, options).body
+    HTTPoison.get!(@api <> @reposEndpoint <> @epiEndpoint <> "/" <> name <> "/contributors", headers(), options()).body
     |> Poison.decode!
     |> Enum.map(fn (x) ->
          x
@@ -60,7 +59,7 @@ defmodule Github.API do
     |> List.flatten
     |> Enum.filter(&String.contains?(&1, ["http"]))
     |> Enum.reduce([], fn(url, all) ->
-      HTTPoison.get!(url , headers, options).body
+      HTTPoison.get!(url , headers(), options()).body
       |> decodeRepos
       |> Enum.concat(all)
     end)

@@ -40,9 +40,9 @@ defmodule Fuseki do
 
   def putStandardForm(project) do
     out = putRepoData(project)
-    |> Kernel.++ putAvatars(project)
-    |> Kernel.++ putMetrics(project)
-    |> Kernel.++ putMetricData(project)
+    |> Kernel.++(putAvatars(project))
+    |> Kernel.++(putMetrics(project))
+    |> Kernel.++(putMetricData(project))
     Enum.uniq(out)
   end
 
@@ -99,7 +99,7 @@ defmodule Fuseki do
       !Enum.member?(current, to_string(k))
     end)
     case length(toAdd) > 0 do
-      true -> result = @fuseki_api.updateDB(Enum.reduce(toAdd, "", fn({k, _}, all) ->
+      true -> @fuseki_api.updateDB(Enum.reduce(toAdd, "", fn({k, _}, all) ->
         stripped = Regex.replace(~r/[^a-zA-Z0-9]/, to_string(k), "", global: true)
         all <> "INSERT { " <>
                "_:" <> stripped <> " rdf:type :metric ; " <>
@@ -122,7 +122,6 @@ defmodule Fuseki do
   end
 
   def putAvatars(project) do
-    result = []
     current = getAvatars(project)
     toAdd = Enum.filter(Map.get(project, :avatars, []), fn(avatar) ->
       !Enum.member?(current, avatar)
@@ -176,7 +175,7 @@ defmodule Fuseki do
   end
 
   def putUsers(users) do
-    current = getUsers
+    current = getUsers()
     users
     |> Enum.filter(fn(x) -> !Enum.member?(current, x.login) end)
     |> Enum.map(fn(user) -> @fuseki_api.updateDB("INSERT DATA { " <>
@@ -320,7 +319,7 @@ defmodule Fuseki do
       "}")
     |> Enum.reduce(%{}, fn(x, all) ->
       avatars = Map.get(all, x["name"], [])
-      |> Kernel.++ [ x["avatar"] ]
+      |> Kernel.++([ x["avatar"] ])
 
       Map.put(all, x["name"], avatars) end)
     details = @fuseki_api.queryDB(
