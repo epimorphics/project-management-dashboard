@@ -1,10 +1,6 @@
 defmodule HelloPhoenix.ProjectController do
   use HelloPhoenix.Web, :controller
 
-  def index(conn, _params) do
-    render conn, "index.html"
-  end
-
   def reposJson(conn, _params) do
     json conn, %{projects: Fuseki.getRepoJSON}
   end
