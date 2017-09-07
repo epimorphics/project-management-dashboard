@@ -100,6 +100,7 @@ defmodule Fuseki do
     end)
     case length(toAdd) > 0 do
       true -> @fuseki_api.updateDB(Enum.reduce(toAdd, "", fn({k, _}, all) ->
+        #remove special characters fuseki wont handle
         stripped = Regex.replace(~r/[^a-zA-Z0-9]/, to_string(k), "", global: true)
         all <> "INSERT { " <>
                "_:" <> stripped <> " rdf:type :metric ; " <>
@@ -140,6 +141,7 @@ defmodule Fuseki do
 
   def putMetricData(project) do
     @fuseki_api.updateDB(Enum.reduce(project.metrics, "", fn({k, v}, all) ->
+      #remove special characters fuseki wont handle
       stripped = Regex.replace(~r/[^a-zA-Z0-9]/, to_string(k), "", global: true)
       all <>
       "DELETE { " <>
@@ -186,6 +188,7 @@ defmodule Fuseki do
     |> List.flatten
   end
 
+  #transforms stored as base64 strings to avoid writing unwanted characters to db
   def getProject(name) do
     @fuseki_api.queryDB("SELECT ?url ?transform ?webhook WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name \"" <> name <> "\" . OPTIONAL { ?project :webhook ?webhook}}")
     |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => name, :source => :epi, :transform => Base.decode64!(x["transform"]), :url => x["url"], :webhook => x["webhook"], :repos => [], :trello => []}] end)

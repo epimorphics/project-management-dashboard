@@ -25,6 +25,7 @@ defmodule Project do
     |> congregateDates
   end
 
+  # if a timestamp and key is the same as another, merge them
   def congregateDates(timeseries) do
     Enum.reduce(Map.keys(timeseries), %{}, fn(key, all) -> Map.put(all, key, newmapmerge(timeseries[key], %{}, fn(a, b) -> a + b end)) end)
   end
@@ -83,6 +84,7 @@ defmodule Project do
       |> Enum.reduce(%{}, &newmapmerge(&1, &2, fn(a,b) -> a + b end))
   end
 
+  #a merge command can have more than one merge object, handle each of them
   def multimerge(timeseries, transform) do
     transforms = Enum.map(Map.get(transform, "merge", []), fn(merges) -> {merges["name"], merge(timeseries, merges)} end)
     Enum.reduce(transforms, timeseries, fn({metricName, map}, out) -> Map.put(out, metricName, map) end)

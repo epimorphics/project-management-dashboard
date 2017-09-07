@@ -27,12 +27,12 @@ defmodule HelloPhoenix.Router do
 
     get "/json/timeseries/:repo", ProjectController, :repoTimeSeries
 
-    get "/json/projects/:project", ProjectController, :testMultiSourceJSON
-    get "/json/projects", ProjectController, :testProjectJSON
+    get "/json/projects/:project", ProjectController, :getProjectJSON
+    get "/json/projects", ProjectController, :getProjects
 
     post "/delete/project/", ProjectController, :deleteProject
     get "/update", ProjectController, :update
-    post "/test", ProjectController, :test
+    post "/test", ProjectController, :putProject
     resources "/users", UserController
   end
 

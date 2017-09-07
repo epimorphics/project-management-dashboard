@@ -1,20 +1,61 @@
-# HelloPhoenix
+# Epimorphics project dashboard
 
-To start your Phoenix app:
+You will also need Fuseki and [`Epi-Dash`](https://github.com/epimorphics/epi-dash) for this project. Once you have these, start up a fuseki in memory database with
+
+```bash
+# start an in memory database for development
+./fuseki-server --update --file=projects.ttl /ds
+
+# start a production persistent store
+./fuseki-server --update --db=<nameofdb> /ds
+#then load project.ttl via the web interface localhost:3030/ds
+```
+
+# start up Epi-dash
+
+``` bash
+#install dependencies
+npm install
+#run
+npm start
+```
+
+# enter credentials
+
+copy prod.secret.example.exs to prod.secret.exs and fill out credentials you need
+this to access the API's needed for the dashboard
+
+# start this server
 
   * Install dependencies with `mix deps.get`
   * Create and migrate your database with `mix ecto.create && mix ecto.migrate`
   * Install Node.js dependencies with `npm install`
   * Start Phoenix endpoint with `mix phoenix.server`
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+# perform update
 
-Ready to run in production? Please [check our deployment guides](http://www.phoenixframework.org/docs/deployment).
+visit localhost:4000/update in the browser or run iex -S mix then Sources.directUpdate
+this will take a little while and returns on completion
 
-## Learn more
+# run tests
 
-  * Official website: http://www.phoenixframework.org/
-  * Guides: http://phoenixframework.org/docs/overview
-  * Docs: https://hexdocs.pm/phoenix
-  * Mailing list: http://groups.google.com/group/phoenix-talk
-  * Source: https://github.com/phoenixframework/phoenix
+run mix test to perform tests
+run MIX_ENV=test mix coveralls.html to perform a coverage report
+
+# problems
+
+the associated rdf:resource for a repo/project/trello is stored in the database,
+you may need to perform a find and replace on projects.ttl to convert these to
+the location of the machine you are using.
+s/localhost:8080/192.168.0.2:8080/g
+this will need to be rectified later
+
+Timeouts from API's arent handled currently, the update will still complete but
+the timed out source will not be updated
+
+Inserts potentially take more database calls than necessary, consider outputting
+a string and performing one call instead
+
+dates, numbers and booleans were not inserted to the triple store as xsd:types, this needs to be rectified
+
+further issues and suggestions can be found in this projects Github issues and the Epimorphics dashboard trello board

@@ -17,6 +17,8 @@ defmodule Users do
   def createUsers(gitrepo, cbrepo) do
     gitusers = gitUsers(gitrepo)
     cbusers = cbUsers(cbrepo)
+    # this mapping should be stored in fuseki and queried here,
+    # unsure of best way to do this currently
     mapping = %{"ijdickinson" => "ian.dickinson@epimorphics.com", "der" => "dave@epimorphics.com", "bwmcbride" => "brian@epimorphics.com",  "ehedgehog" => "chris.dollin@epimorphics.com", "paperclipmonkey" => "mike.waterworth@epimorphics.com", "alexrcoley" => "alex.coley@epimorphics.com", "pshab" => "paul@epimorphics.com", "skwlilac" => "skw@epimorphics.com", "heshoots" => "max.prettyjohns@epimorphics.com", "mika018" => "mihajlo.milosavljevic@epimorphics.com"}
     Enum.map(gitusers, fn(x) ->
       gitmap = Enum.find(cbusers, %{}, fn(user) ->
