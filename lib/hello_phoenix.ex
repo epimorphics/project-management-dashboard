@@ -10,7 +10,6 @@ defmodule HelloPhoenix do
     # Define workers and child supervisors to be supervised
     children = [
       # Start the Ecto repository
-      supervisor(HelloPhoenix.Repo, []),
       # Start the endpoint when the application starts
       supervisor(HelloPhoenix.Endpoint, []),
       # Start your own worker by calling: HelloPhoenix.Worker.start_link(arg1, arg2, arg3)

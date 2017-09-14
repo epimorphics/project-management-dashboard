@@ -10,14 +10,6 @@ config :hello_phoenix, HelloPhoenix.Endpoint,
 config :logger, level: :warn
 
 # Configure your database
-config :hello_phoenix, HelloPhoenix.Repo,
-  adapter: Ecto.Adapters.Postgres,
-  username: "postgres",
-  password: "postgres",
-  database: "hello_phoenix_test",
-  hostname: "localhost",
-  pool: Ecto.Adapters.SQL.Sandbox
-
 config :hello_phoenix, :slack_api, Slack.Test
 config :hello_phoenix, :github_api, Github.Test
 config :hello_phoenix, :jenkins_api, Jenkins.Test

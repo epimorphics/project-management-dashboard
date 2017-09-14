@@ -21,10 +21,6 @@ defmodule HelloPhoenix.ConnCase do
       use Phoenix.ConnTest
 
       alias HelloPhoenix.Repo
-      import Ecto
-      import Ecto.Changeset
-      import Ecto.Query
-
       import HelloPhoenix.Router.Helpers
 
       # The default endpoint for testing
@@ -33,12 +29,6 @@ defmodule HelloPhoenix.ConnCase do
   end
 
   setup tags do
-    :ok = Ecto.Adapters.SQL.Sandbox.checkout(HelloPhoenix.Repo)
-
-    unless tags[:async] do
-      Ecto.Adapters.SQL.Sandbox.mode(HelloPhoenix.Repo, {:shared, self()})
-    end
-
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
 end

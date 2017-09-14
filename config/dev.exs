@@ -33,14 +33,6 @@ config :logger, :console, format: "[$level] $message\n"
 config :phoenix, :stacktrace_depth, 20
 
 # Configure your database
-config :hello_phoenix, HelloPhoenix.Repo,
-  adapter: Ecto.Adapters.Postgres,
-  username: "postgres",
-  password: "postgres",
-  database: "hello_phoenix_dev",
-  hostname: "localhost",
-  pool_size: 10
-
 config :hello_phoenix, :slack_api, Slack.API
 config :hello_phoenix, :github_api, Github.API
 config :hello_phoenix, :jenkins_api, Jenkins.API
