@@ -53,4 +53,9 @@ defmodule TrelloTest do
     }]
   end
 
+  test "trello auth" do
+    HTTPoison.start()
+    assert HTTPoison.get!("https://api.trello.com/1/organization/epimorphics/boards" <> Trello.API.auth()).status_code == 200
+  end
+
 end

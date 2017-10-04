@@ -48,4 +48,9 @@ defmodule JenkinsTest do
   test "remote string github" do
     assert Jenkins.remoteStringToSource("git@github.com:epimorphics/test/scala-expt-1.git") == %{:source => :github, :name => "test"}
   end
+
+  test "auth jenkins" do
+    HTTPoison.start()
+    assert HTTPoison.get!("https://epi-jenkins.epimorphics.net/api/json?depth=2", Jenkins.API.headers, Jenkins.API.auth).status_code == 200
+  end
 end

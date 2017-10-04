@@ -104,4 +104,9 @@ defmodule CodebaseHQTest do
         time: ~N[2017-09-04 17:54:16]}
 
   end
+
+  test "codebase authenticated" do
+    HTTPoison.start()
+    assert HTTPoison.get!("https://api3.codebasehq.com/projects", CodebaseHQ.API.headers(), CodebaseHQ.API.auth()).status_code == 200
+  end
 end

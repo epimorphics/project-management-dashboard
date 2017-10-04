@@ -78,4 +78,9 @@ defmodule GithubTest do
         metrics: %{Bugs: 1, Issues: 1}, name: "epi-dash",
         source: :git, time: ~N[2017-09-01 15:03:17]}
   end
+
+  test "github authenticated" do
+    HTTPoison.start()
+    assert HTTPoison.get!("https://api.github.com/user", Github.API.headers(), Github.API.options).status_code == 200
+  end
 end
