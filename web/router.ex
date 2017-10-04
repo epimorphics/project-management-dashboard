@@ -20,6 +20,7 @@ defmodule HelloPhoenix.Router do
 
     get "/json/git/:repo", ProjectController, :repoJSON
     get "/json/cb/:repo", ProjectController, :repoJSON
+    get "/json/repo/:repo", ProjectController, :repoJSON
     get "/json/project/:repo", ProjectController, :repoJSON
     get "/json/trello/:repo", ProjectController, :repoJSON
 

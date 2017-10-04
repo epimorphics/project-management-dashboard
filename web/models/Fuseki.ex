@@ -11,15 +11,17 @@ defmodule Fuseki.API do
   end
 
   def queryDB(sparqlquery) do
+    fuseki_loc = Application.get_env(:hello_phoenix, :fuseki_loc)
     HTTPoison.start
-    HTTPoison.get!("http://localhost:3030/ds/query", [], params: [{"query", prefixes() <> sparqlquery}, {"output", "json"}]).body
+    HTTPoison.get!(fuseki_loc <> "ds/query", [], params: [{"query", prefixes() <> sparqlquery}, {"output", "json"}]).body
     |> Poison.decode!
     |> parseJSON
   end
 
   def updateDB(sparqlquery) do
+    fuseki_loc = Application.get_env(:hello_phoenix, :fuseki_loc)
     HTTPoison.start
-    {:ok, status} = HTTPoison.post("http://localhost:3030/ds/update", Poison.encode!(%{}), [{"Content-Type", "application/x-www-form-urlencoded"}], params: [{"update", prefixes() <> sparqlquery}])
+    {:ok, status} = HTTPoison.post(fuseki_loc <> "ds/update", Poison.encode!(%{}), [{"Content-Type", "application/x-www-form-urlencoded"}], params: [{"update", prefixes() <> sparqlquery}])
     [status.status_code]
   end
 
@@ -65,7 +67,6 @@ defmodule Fuseki do
       "rdf:name \"" <> project.name <> "\" ; " <>
       ":displayName \"" <> project.displayName <> "\" ; " <>
       "rdf:Description \"" <> to_string(project.description) <> "\" ; " <>
-      "rdf:resource <http://localhost:4000/json/" <> Atom.to_string(project.source) <> "/" <> project.name <> "> ; " <>
         "}")
       false -> []
     end
@@ -190,31 +191,34 @@ defmodule Fuseki do
 
   #transforms stored as base64 strings to avoid writing unwanted characters to db
   def getProject(name) do
-    @fuseki_api.queryDB("SELECT ?url ?transform ?webhook WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name \"" <> name <> "\" . OPTIONAL { ?project :webhook ?webhook}}")
-    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => name, :source => :epi, :transform => Base.decode64!(x["transform"]), :url => x["url"], :webhook => x["webhook"], :repos => [], :trello => []}] end)
+    front_end = Application.get_env(:hello_phoenix, :front_end)
+    @fuseki_api.queryDB("SELECT ?transform ?webhook WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:name \"" <> name <> "\" . OPTIONAL { ?project :webhook ?webhook}}")
+    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => name, :source => :epi, :transform => Base.decode64!(x["transform"]), :url => front_end <> "project?name=" <> name, :webhook => x["webhook"], :repos => [], :trello => []}] end)
     |> getRepos
     |> getTrello
     |> List.first
   end
 
   def getRepos(projects) do
+    db_loc = Application.get_env(:hello_phoenix, :db_loc)
     git = @fuseki_api.queryDB(
-     "SELECT ?projectName ?url " <>
+     "SELECT ?projectName ?reponame " <>
      "WHERE { " <>
      "?project rdf:type :project . " <>
      "?project rdf:name ?projectName . " <>
      "?project :repo ?repo . " <>
-     "?repo rdf:resource ?url . " <>
+     "?repo rdf:name ?reponame . " <>
      "}")
      Enum.map(projects, fn(project) ->
       list = Enum.filter(git, fn(result) -> Map.get(result, "projectName") == project.name end)
-      |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
+      |> Enum.map(fn(x) -> %{:transform => %{}, :url => db_loc <>  "repo/" <> x["reponame"]} end)
       Map.put(project, :repos , list) end)
   end
 
   def getProjects do
-    @fuseki_api.queryDB("SELECT ?name ?url ?transform WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:resource ?url . ?project rdf:name ?name . }")
-    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => x["name"], :source => :epi, :transform => Base.decode64!(x["transform"]), :url => x["url"], :repos => [], :trello => []}] end)
+    front_end = Application.get_env(:hello_phoenix, :front_end)
+    @fuseki_api.queryDB("SELECT ?name ?transform WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:name ?name . }")
+    |> Enum.reduce([], fn(x, all) -> all ++  [%{:name => x["name"], :source => :epi, :transform => Base.decode64!(x["transform"]), :url => front_end <> "project?name=" <> URI.encode(x["name"]), :repos => [], :trello => []}] end)
     |> getRepos
     |> getTrello
   end
@@ -236,7 +240,6 @@ defmodule Fuseki do
     "_:project rdf:name \"" <> project["name"] <> "\" . " <>
     "_:project :transform \"" <> Base.encode64(project["transform"]) <> "\" . " <>
     "_:project :source :epi . " <>
-    "_:project rdf:resource <http://localhost:8080/#/project?name=" <> URI.encode(project["name"]) <> "> . " <>
     "} WHERE {} ; " <>
     Enum.reduce(project["repos"], "", fn(x, all) ->
     all <> "INSERT { " <>
@@ -244,7 +247,7 @@ defmodule Fuseki do
     "} WHERE { " <>
     "?project rdf:type :project . " <>
     "?project rdf:name \"" <>  project["name"]  <> "\" . " <>
-    "?repo rdf:resource <" <> x["url"] <> "> . " <>
+    "?repo rdf:name \"" <> x["name"] <> "\" . " <>
     "} ; "
     end) <>
     Enum.reduce(project["trello"], "", fn(x, all) ->
@@ -253,7 +256,7 @@ defmodule Fuseki do
     "} WHERE { " <>
     "?project rdf:type :project . " <>
     "?project rdf:name \"" <> project["name"] <> "\" . " <>
-    "?repo rdf:resource <" <> x["url"] <> "> . " <>
+    "?repo rdf:name \"" <> x["name"] <> "\" . " <>
     "} ; " end) <>
     if Map.has_key?(project, "webhook") do
     "INSERT { " <>
@@ -265,21 +268,23 @@ defmodule Fuseki do
   end
 
   def getTrello(projects) do
+    db_loc = Application.get_env(:hello_phoenix, :db_loc)
     trello = @fuseki_api.queryDB(
-    "SELECT ?projectName ?url " <>
+    "SELECT ?projectName ?trelloname " <>
     "WHERE { " <>
     "?project rdf:type :project . " <>
     "?project rdf:name ?projectName . " <>
     "?project :trello ?trello . " <>
-    "?trello rdf:resource ?url . " <>
+    "?trello rdf:name ?trelloname . " <>
     "}")
     Enum.map(projects, fn(project) ->
     list = Enum.filter(trello, fn(result) -> Map.get(result, "projectName") == project.name end)
-    |> Enum.map(fn(x) -> %{:transform => %{}, :url => x["url"]} end)
+    |> Enum.map(fn(x) -> %{:transform => %{}, :url => db_loc <> "trello/" <> x["trelloname"]} end)
     Map.put(project, :trello, list) end)
   end
 
   def getTrelloJSON do
+    db_loc = Application.get_env(:hello_phoenix, :db_loc)
     metrics = @fuseki_api.queryDB(
       "SELECT ?name ?metricName ?value " <>
       "WHERE { " <>
@@ -297,22 +302,23 @@ defmodule Fuseki do
       Map.put(all, x["name"], update)
     end)
     details = @fuseki_api.queryDB(
-      "SELECT ?name ?displayName ?url " <>
+      "SELECT ?name ?displayName " <>
       "WHERE { " <>
         "?trello rdf:name ?name . " <>
         "?trello rdf:type :trello . " <>
         "?trello :displayName ?displayName . " <>
-        "?trello rdf:resource ?url . " <>
       "}")
 
     Enum.map(details, fn(x) ->
       Map.put(x, "metrics", metrics[x["name"]])
+      |> Map.put("url", db_loc <> "trello/" <> x["name"])
       |> Map.put("stats", metrics[x["name"]])
       |> Map.put("source", "trello")
     end)
   end
 
   def getRepoJSON do
+    db_loc = Application.get_env(:hello_phoenix, :db_loc)
     avatars = @fuseki_api.queryDB(
       "select ?name ?avatar " <>
       "where { " <>
@@ -326,12 +332,11 @@ defmodule Fuseki do
 
       Map.put(all, x["name"], avatars) end)
     details = @fuseki_api.queryDB(
-      "select ?name ?url ?displayName ?description ?source ?test " <>
+      "select ?name ?displayName ?description ?source ?test " <>
       "where { " <>
        "?x rdf:name ?name . " <>
        "?x :displayName ?displayName . " <>
        "?x rdf:type ?type . " <>
-       "?x rdf:resource ?url . " <>
        "?type rdf:label ?source . " <>
        "OPTIONAL { " <>
          "?x rdf:Description ?description . " <>
@@ -359,6 +364,7 @@ defmodule Fuseki do
     end)
     Enum.map(details, fn(x) ->
       x
+      |> Map.put("url", db_loc <> "repo/" <> x["name"])
       |> Map.put("metrics", metrics[x["name"]])
       |> Map.put("avatars", avatars[x["name"]])
     end)

@@ -18,6 +18,10 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
+config :hello_phoenix, db_loc: "http://localhost:4000/json/"
+config :hello_phoenix, front_end: "http://localhost:8000/#/"
+config :hello_phoenix, fuseki_loc: "http://fuseki:3030/"
+
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
 import_config "prod.secret.exs"
