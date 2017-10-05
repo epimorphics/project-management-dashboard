@@ -44,12 +44,6 @@ run MIX_ENV=test mix coveralls.html to perform a coverage report
 
 # problems
 
-the associated rdf:resource for a repo/project/trello is stored in the database,
-you may need to perform a find and replace on projects.ttl to convert these to
-the location of the machine you are using.
-s/localhost:8080/192.168.0.2:8080/g
-this will need to be rectified later
-
 Timeouts from API's arent handled currently, the update will still complete but
 the timed out source will not be updated
 

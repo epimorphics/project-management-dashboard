@@ -3,6 +3,7 @@ defmodule Github.API do
   @orgsEndpoint "/orgs"
   @epiEndpoint "/epimorphics"
   @reposEndpoint "/repos"
+  @membersEndpoint "/members"
 
   def headers do
     token = Application.fetch_env!(:hello_phoenix, :api_key)
@@ -34,6 +35,21 @@ defmodule Github.API do
     |> decodeRepos
     |> Enum.concat(getNext resp.headers)
   end
+
+  def getContributors do
+    expected_fields = ~w(avatar_url html_url id login)
+    HTTPoison.start
+    HTTPoison.get!(@api <> @orgsEndpoint <> @epiEndpoint <> @membersEndpoint, headers(), options()).body
+    |> Poison.decode!
+    |> Enum.map(fn (x) ->
+      x
+      |> Map.take(expected_fields)
+      |> Enum.reduce(%{}, fn({k,v}, all) ->
+           Map.merge(all, %{String.to_atom(k) => v})
+         end)
+    end)
+  end
+
 
   def getContributors(name) do
     expected_fields = ~w(login avatar_url contributions)
@@ -81,6 +97,7 @@ end
 
 defmodule Github do
   @github_api Application.get_env(:hello_phoenix, :github_api)
+  @fuseki_api Application.get_env(:hello_phoenix, :fuseki_api)
 
   def github do
     repos = @github_api.getRepos
@@ -115,6 +132,29 @@ defmodule Github do
       "open" -> true
       _ -> false
     end
+  end
+
+  def putContributors do
+    # getting present user ids
+    added = @fuseki_api.queryDB(
+      "SELECT ?gitUser ?id WHERE { " <>
+        "?gitUser rdf:type :gitUser . " <>
+        "?gitUser :id ?id . " <>
+      "}"
+    )
+    |> Enum.map(&Map.get(&1, "id"))
+    contributors = @github_api.getContributors
+    notadded = Enum.filter(contributors, fn(x) -> !Enum.member?(added, x.id) end)
+    newids = Enum.map(notadded, fn(x) -> "INSERT { _:gitUser :id " <> to_string(x.id) <> " ; rdf:type :gitUser ; } WHERE {};" end)
+    |> Enum.reduce("", &Kernel.<>(&1, &2))
+    setVals = Enum.map(contributors, fn(x) ->
+      "INSERT { _:gitUser :avatarUrl \"" <> x.avatar_url <> "\" . " <>
+        " :login \"" <> x.login <> "\" . " <>
+        " :html <" <> x.html_url <> "> . " <>
+      " } WHERE {  _:gitUser :id " <> to_string(x.id) <> " . } "
+    end)
+    |> Enum.reduce("", &Kernel.<>(&1, &2))
+    @fuseki_api.updateDB(newids <> setVals)
   end
 
   def getIssueTypes(issues) do

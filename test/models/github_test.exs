@@ -24,6 +24,12 @@ defmodule Github.Test do
     end
   end
 
+  def getContributors do
+    [%{avatar_url: "https://avatars2.githubusercontent.com/u/1387594?v=4",
+       html_url: "https://github.com/pshab", id: 1387594,
+      login: "pshab"}]
+  end
+
 end
 
 defmodule GithubTest do
@@ -82,5 +88,11 @@ defmodule GithubTest do
   test "github authenticated" do
     HTTPoison.start()
     assert HTTPoison.get!("https://api.github.com/user", Github.API.headers(), Github.API.options).status_code == 200
+  end
+
+  test "putContributors" do
+    send self(), {:out, [%{"id" => 100}]}
+    Github.putContributors
+    assert_received "DELETE { ?project ?a ?b } WHERE { ?project rdf:type :project . ?project rdf:name \"TestProject\" . ?project ?a ?b . } ; INSERT { _:project rdf:type :project . _:project rdf:name \"TestProject\" . _:project :transform \"e30=\" . _:project :source :epi . } WHERE {} ; INSERT {  ?project :repo ?repo ; } WHERE { ?project rdf:type :project . ?project rdf:name \"TestProject\" . ?repo rdf:name \"testrepo\" . } ; INSERT { ?project :trello ?repo ; } WHERE { ?project rdf:type :project . ?project rdf:name \"TestProject\" . ?repo rdf:name \"testtrello\" . } ; INSERT { ?project :webhook <testhook> . } WHERE { ?project rdf:name \"TestProject\" }; "
   end
 end
