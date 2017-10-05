@@ -54,20 +54,33 @@ defmodule FusekiTests do
   test "getTrello" do
     db_loc = Application.get_env(:hello_phoenix, :db_loc)
     send self(), {:out, [%{"projectName" => "testProject", "trelloname" => "trelloName"}]}
-    assert Fuseki.getTrello([%{:name => "testProject"}]) == [%{:name => "testProject", :trello => [%{:transform => %{}, :url=> db_loc <> "trello/" <> "trelloName"}]}]
+    assert Fuseki.getTrello([%{:name => "testProject"}]) == [%{:name => "testProject", :trello => [%{:transform => %{}, :url=> db_loc <> "trello/" <> "trelloName", :name => "trelloName"}]}]
     assert_received "SELECT ?projectName ?trelloname WHERE { ?project rdf:type :project . ?project rdf:name ?projectName . ?project :trello ?trello . ?trello rdf:name ?trelloname . }"
   end
 
   test "getRepos" do
     db_loc = Application.get_env(:hello_phoenix, :db_loc)
     send self(), {:out, [%{"projectName" => "testProject", "url" => "projecturl", "reponame" => "projectName"}]}
-    assert Fuseki.getRepos([%{:name => "testProject"}]) == [%{:name => "testProject", :repos => [%{:transform => %{}, :url => db_loc <> "repo/" <> "projectName"}]}]
+    assert Fuseki.getRepos([%{:name => "testProject"}]) == [%{:name => "testProject", :repos => [%{:transform => %{}, :url => db_loc <> "repo/" <> "projectName", :name => "projectName"}]}]
     assert_received "SELECT ?projectName ?reponame WHERE { ?project rdf:type :project . ?project rdf:name ?projectName . ?project :repo ?repo . ?repo rdf:name ?reponame . }"
   end
 
   test "getTimeseries" do
-    send self(), {:out, [%{"name" => "testProject", "value" => 4, "date" => "a date"}]}
-    assert Fuseki.getTimeseries("testProject") == %{"testProject" => [%{"a date" => 4}]}
+    send self(), {:out, [%{"name" => "metricName", "value" => 4, "date" => "a date"}]}
+    send self(), {:out, []}
+    assert Fuseki.getTimeseries("testProject") == %{"metricName" => [%{"a date" => 4}]}
+  end
+
+  test "getTimeseries tests false" do
+    send self(), {:out, []}
+    send self(), {:out, [%{"name" => "testProject", "value" => "false", "date" => "a date"}]}
+    assert Fuseki.getTimeseries("testProject") == %{"test" => [%{"a date" => 0}]}
+  end
+
+  test "getTimeseries tests true" do
+    send self(), {:out, []}
+    send self(), {:out, [%{"name" => "testProject", "value" => "false", "date" => "a date"}]}
+    assert Fuseki.getTimeseries("testProject") == %{"test" => [%{"a date" => 0}]}
   end
 
   test "getProject" do
@@ -77,7 +90,7 @@ defmodule FusekiTests do
 
     send self(), {:out, [%{"projectName" => "testProject", "reponame" => "repoName"}]}
     send self(), {:out, [%{"projectName" => "testProject", "trelloname" => "trelloName"}]}
-    assert Fuseki.getProject("testProject") ==  %{name: "testProject", repos: [%{transform: %{}, url: db_loc <> "repo/" <> "repoName"}], source: :epi, transform: "{ \"hide\": [\"Done\", \"Doing\"]}", trello: [%{transform: %{}, url: db_loc <> "trello/" <> "trelloName"}], url: front_end <> "project?name=testProject", webhook: "test webhook"}
+    assert Fuseki.getProject("testProject") ==  %{name: "testProject", repos: [%{transform: %{}, url: db_loc <> "repo/" <> "repoName", name: "repoName"}], source: :epi, transform: "{ \"hide\": [\"Done\", \"Doing\"]}", trello: [%{transform: %{}, url: db_loc <> "trello/" <> "trelloName", name: "trelloName"}], url: front_end <> "project?name=testProject", webhook: "test webhook"}
     assert_received "SELECT ?transform ?webhook WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:name \"testProject\" . OPTIONAL { ?project :webhook ?webhook}}"
   end
 
@@ -87,7 +100,7 @@ defmodule FusekiTests do
     send self(), {:out, [%{"transform" => "eyAiaGlkZSI6IFsiRG9uZSIsICJEb2luZyJdfQ==", "url" => "test url", "name" => "testProject"}]}
     send self(), {:out, [%{"projectName" => "testProject", "reponame" => "repoName"}]}
     send self(), {:out, [%{"projectName" => "testProject", "trelloname" => "trelloName"}]}
-    assert Fuseki.getProjects ==  [%{name: "testProject", repos: [%{transform: %{}, url: db_loc <> "repo/" <> "repoName"}], source: :epi, transform: "{ \"hide\": [\"Done\", \"Doing\"]}", trello: [%{transform: %{}, url: db_loc <> "trello/" <> "trelloName"}], url: front_end <> "project?name=testProject"}]
+    assert Fuseki.getProjects ==  [%{name: "testProject", repos: [%{transform: %{}, url: db_loc <> "repo/" <> "repoName", name: "repoName"}], source: :epi, transform: "{ \"hide\": [\"Done\", \"Doing\"]}", trello: [%{transform: %{}, url: db_loc <> "trello/" <> "trelloName", name: "trelloName"}], url: front_end <> "project?name=testProject"}]
     assert_received "SELECT ?name ?transform WHERE { ?project rdf:type :project . ?project :transform ?transform . ?project rdf:name ?name . }"
   end
 
@@ -206,6 +219,7 @@ defmodule FusekiTests do
     assert Fuseki.putTests([%{:name => "testname", :success => true }]) == [200]
     assert_received expectedstr
   end
+
 
   test "putStandardForm" do
     send self(), {:out, [%{"name" => "No Project"}]}

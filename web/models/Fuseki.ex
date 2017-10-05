@@ -211,7 +211,7 @@ defmodule Fuseki do
      "}")
      Enum.map(projects, fn(project) ->
       list = Enum.filter(git, fn(result) -> Map.get(result, "projectName") == project.name end)
-      |> Enum.map(fn(x) -> %{:transform => %{}, :url => db_loc <>  "repo/" <> x["reponame"]} end)
+      |> Enum.map(fn(x) -> %{:name => x["reponame"], :transform => %{}, :url => db_loc <>  "repo/" <> x["reponame"]} end)
       Map.put(project, :repos , list) end)
   end
 
@@ -279,7 +279,7 @@ defmodule Fuseki do
     "}")
     Enum.map(projects, fn(project) ->
     list = Enum.filter(trello, fn(result) -> Map.get(result, "projectName") == project.name end)
-    |> Enum.map(fn(x) -> %{:transform => %{}, :url => db_loc <> "trello/" <> x["trelloname"]} end)
+    |> Enum.map(fn(x) -> %{:name => x["trelloname"], :transform => %{}, :url => db_loc <> "trello/" <> x["trelloname"]} end)
     Map.put(project, :trello, list) end)
   end
 
@@ -424,8 +424,11 @@ defmodule Fuseki do
     |> List.first
   end
 
+  def bool_to_int("true"), do: 1
+  def bool_to_int("false"), do: 0
+
   def getTimeseries(name) do
-    @fuseki_api.queryDB("
+    time = @fuseki_api.queryDB("
     SELECT ?name ?value ?date
     WHERE {
         ?a rdf:name \"" <> name <> "\".
@@ -439,6 +442,22 @@ defmodule Fuseki do
           update = Map.get(all, x["name"], []) |> Kernel.++([%{x["date"] => x["value"]}])
           Map.put(all, x["name"], update)
         end)
+    @fuseki_api.queryDB("
+    SELECT ?projectname ?date ?value WHERE {
+    ?project rdf:name \"" <> name <> "\" .
+    ?project :test ?test .
+    ?test xsd:dateTime ?date .
+    ?test xsd:boolean ?value .
+    } ORDER BY ?date
+    ")
+    |> Enum.reduce(time, fn(x, all) ->
+       update = Map.get(all, "test", []) |> Kernel.++([%{x["date"] => bool_to_int(x["value"])}])
+       Map.put(all, "test", update)
+    end)
+  end
+
+
+  def testTimeseries(name) do
   end
 
   def putTests(tests) do
