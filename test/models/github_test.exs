@@ -91,8 +91,9 @@ defmodule GithubTest do
   end
 
   test "putContributors" do
-    send self(), {:out, [%{"id" => 100}]}
+    send self(), {:out, []}
     Github.putContributors
-    assert_received "DELETE { ?project ?a ?b } WHERE { ?project rdf:type :project . ?project rdf:name \"TestProject\" . ?project ?a ?b . } ; INSERT { _:project rdf:type :project . _:project rdf:name \"TestProject\" . _:project :transform \"e30=\" . _:project :source :epi . } WHERE {} ; INSERT {  ?project :repo ?repo ; } WHERE { ?project rdf:type :project . ?project rdf:name \"TestProject\" . ?repo rdf:name \"testrepo\" . } ; INSERT { ?project :trello ?repo ; } WHERE { ?project rdf:type :project . ?project rdf:name \"TestProject\" . ?repo rdf:name \"testtrello\" . } ; INSERT { ?project :webhook <testhook> . } WHERE { ?project rdf:name \"TestProject\" }; "
+    assert_received "SELECT ?gitUser ?id WHERE { ?gitUser rdf:type :gitUser . ?gitUser :id ?id . }"
+    assert_received "INSERT { _:gitUser :id 1387594 ; rdf:type :gitUser ; } WHERE {};INSERT { _:gitUser :avatarUrl \"https://avatars2.githubusercontent.com/u/1387594?v=4\" .  :login \"pshab\" .  :html <https://github.com/pshab> .  } WHERE {  _:gitUser :id 1387594 . } "
   end
 end
