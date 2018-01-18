@@ -19,8 +19,8 @@ config :logger, :console,
   metadata: [:request_id]
 
 config :hello_phoenix, db_loc: "http://localhost:4000/json/"
-config :hello_phoenix, front_end: "http://localhost:8000/#/"
-config :hello_phoenix, fuseki_loc: "http://fuseki:3030/"
+config :hello_phoenix, front_end: System.get_env("VUE_LOC")
+config :hello_phoenix, fuseki_loc: System.get_env("FUSEKI_LOC")
 
 # Import environment specific config. This must remain at the bottom
 # of this file so it overrides the configuration defined above.
