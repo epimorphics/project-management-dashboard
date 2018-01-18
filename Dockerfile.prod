@@ -4,11 +4,13 @@ RUN apk add --update \
       curl \
       inotify-tools \
       bash \
-      nodejs
+      nodejs \
+      make
 ADD mix.exs /app/mix.exs
 ADD mix.lock /app/mix.lock
 RUN mix local.hex --force
 RUN mix local.rebar --force
+RUN mix deps.get --force
 ADD . /app
 RUN mix compile
 CMD ["mix", "phoenix.server"]
