@@ -5,3 +5,8 @@ language: general
 script:
   - docker build -f Dockerfile.prod -t quorauk/dashboardelixir .
   - docker run -e CB_PASS -e CB_USER -e GITHUB_API_KEY -e JENKINS_PASS -e JENKINS_USER -e TRELLO_KEY -e TRELLO_TOKEN -it quorauk/dashboardelixir mix test
+after_success:
+  - if [ "$TRAVIS_BRANCH" == "master"]; then
+    docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
+    docker tag quorauk/dashboardelixir:latest quorauk/dashboardelixir:$TRAVIS_BUILD_NUMBER
+    docker push quorauk/dashboardelixir:$TRAVIS_BUILD_NUMBER
