@@ -1,0 +1,7 @@
+sudo: required
+services:
+  - docker
+language: general
+script:
+  - docker build -f Dockerfile.prod -t quorauk/dashboardelixir .
+  - docker run -it quoauk/dashboardelixir mix test
