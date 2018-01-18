@@ -8,5 +8,6 @@ script:
 after_success:
   - if [ "$TRAVIS_BRANCH" == "master"]; then
     docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
-    docker tag quorauk/dashboardelixir:latest quorauk/dashboardelixir:$TRAVIS_BUILD_NUMBER
-    docker push quorauk/dashboardelixir:$TRAVIS_BUILD_NUMBER
+    docker tag quorauk/dashboardelixir:latest quorauk/dashboardelixir:$TRAVIS_BUILD_NUMBER;
+    docker push quorauk/dashboardelixir:$TRAVIS_BUILD_NUMBER;
+    fi
