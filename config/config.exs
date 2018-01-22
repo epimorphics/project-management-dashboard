@@ -18,7 +18,7 @@ config :logger, :console,
   format: "$time $metadata[$level] $message\n",
   metadata: [:request_id]
 
-config :hello_phoenix, db_loc: System.get_env("VUE_LOC") <> "/json/"
+config :hello_phoenix, db_loc: System.get_env("DB_LOC")
 config :hello_phoenix, front_end: System.get_env("VUE_LOC")
 config :hello_phoenix, fuseki_loc: System.get_env("FUSEKI_LOC")
 
